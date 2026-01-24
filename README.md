@@ -58,7 +58,7 @@ npm run dev
 
 - **Profile Image**: Replace `public/profile.jpg` with your image
 - **Content**: Edit the content in `app/page.tsx`
-- **Colors**: Modify accent colors in `tailwind.config.ts`
+- **Colors**: Modify accent colors in `tailwind.config.js`
 - **Animations**: Adjust animation timings in component files
 
 ## Build for Production
