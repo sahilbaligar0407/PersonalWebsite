@@ -194,7 +194,7 @@ export default function Home() {
               className="space-y-2 text-gray-400"
             >
               <p>• Sophomore in Computer Science at Purdue University</p>
-              <p>• Graduating 2028 (only taking 1 semester that year) → finishing by winter 2028</p>
+              <p>• Graduating 2028 Winter</p>
               <p>• Interested in: product engineering, automation, QA systems, ML/analytics</p>
             </motion.div>
 
