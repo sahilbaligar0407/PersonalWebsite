@@ -194,7 +194,7 @@ export default function Home() {
               className="space-y-2 text-gray-400"
             >
               <p>• Sophomore in Computer Science at Purdue University</p>
-              <p>• Graduating 2028 Winter</p>
+              <p>• Graduating Winter 2027</p>
               <p>• Interested in: product engineering, automation, QA systems, ML/analytics</p>
             </motion.div>
 
@@ -383,7 +383,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-white mb-2">
                 Purdue University — B.S. Computer Science
               </h3>
-              <p className="text-gray-400 mb-4">Aug 2024 – Winter 2028</p>
+              <p className="text-gray-400 mb-4">Aug 2024 – Winter 2027</p>
               <p className="text-gray-300">
                 <span className="text-accent">Activities:</span> Purdue Student Government — Board
                 of Directors (Engagement Committee)
