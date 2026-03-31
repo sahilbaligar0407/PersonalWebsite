@@ -1,0 +1,30 @@
+/* Senate route — scoped tokens (does not alter global portfolio styles). */
+
+html.senate-canvas-page {
+  scroll-behavior: auto !important;
+}
+
+/* --- Static landing (single screen) --- */
+.senate-landing-bg-img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transform: scale(1.02);
+}
+
+.senate-landing-scrim {
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 6, 4, 0.25) 0%,
+    rgba(10, 8, 6, 0.45) 40%,
+    rgba(6, 4, 2, 0.72) 100%
+  );
+  pointer-events: none;
+}
+
+.senate-root {
+  --senate-cream: #f0ede8;
+  --senate-ink: #1a0f0a;
+  --senate-gold: #c9a227;
+  --senate-gold-hot: #d4a84b;
+  --senate-muted: #7a6c58;
+}

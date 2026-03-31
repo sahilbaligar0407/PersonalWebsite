@@ -24,6 +24,8 @@ const nextConfig = {
       { source: '/senate', destination: '/Senate' },
       { source: '/campaign', destination: '/Senate' },
       { source: '/Campaign', destination: '/Senate' },
+      { source: '/election', destination: '/Senate' },
+      { source: '/Election', destination: '/Senate' },
     ];
   },
 };
