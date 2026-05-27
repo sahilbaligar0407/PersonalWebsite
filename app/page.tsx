@@ -61,14 +61,14 @@ export default function Home() {
 
   const experiences = [
     {
-      title: "Software Engineering Intern",
-      company: "Hilton (Connected Room)",
+      title: "Data Science Intern",
+      company: "FedEx",
       period: "May 2026 – Aug 2026",
       location: "Upcoming",
       isUpcoming: true,
       bullets: [
-        "Upcoming 10-week summer internship with Connected Room team",
-        "Software engineering role starting May 2026",
+        "Upcoming summer internship on FedEx data science initiatives",
+        "Focus on analytical modeling and data-driven insights starting May 2026",
       ],
     },
     {

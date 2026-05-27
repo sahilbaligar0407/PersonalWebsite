@@ -15,19 +15,6 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-
-  // rewrite alternate paths to the Senate page
-  async rewrites() {
-    return [
-      { source: '/vote', destination: '/Senate' },
-      { source: '/Vote', destination: '/Senate' },
-      { source: '/senate', destination: '/Senate' },
-      { source: '/campaign', destination: '/Senate' },
-      { source: '/Campaign', destination: '/Senate' },
-      { source: '/election', destination: '/Senate' },
-      { source: '/Election', destination: '/Senate' },
-    ];
-  },
 };
 
 module.exports = nextConfig;
