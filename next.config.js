@@ -15,6 +15,13 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  // Serve the RoyLee page under alternate paths (URL stays the same).
+  async rewrites() {
+    return [
+      { source: "/roylee", destination: "/RoyLee" },
+      { source: "/application", destination: "/RoyLee" },
+    ];
+  },
 };
 
 module.exports = nextConfig;
