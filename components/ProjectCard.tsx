@@ -9,15 +9,31 @@ interface ProjectCardProps {
   description: string;
   status: "live" | "wip";
   link?: string;
+  /** When true, navigate in the same tab (internal route) instead of opening a new tab. */
+  internal?: boolean;
+  /** Override the call-to-action label (defaults to "Visit Website" for live cards). */
+  linkLabel?: string;
   delay?: number;
 }
 
-export default function ProjectCard({ title, description, status, link, delay = 0 }: ProjectCardProps) {
+export default function ProjectCard({
+  title,
+  description,
+  status,
+  link,
+  internal = false,
+  linkLabel,
+  delay = 0,
+}: ProjectCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleClick = () => {
     if (status === "live" && link) {
-      window.open(link, "_blank", "noopener,noreferrer");
+      if (internal) {
+        window.location.href = link;
+      } else {
+        window.open(link, "_blank", "noopener,noreferrer");
+      }
     } else {
       setIsModalOpen(true);
     }
@@ -54,7 +70,7 @@ export default function ProjectCard({ title, description, status, link, delay = 
         <div className="flex items-center text-accent text-sm font-medium group-hover:gap-2 transition-all">
           {status === "live" ? (
             <>
-              Visit Website
+              {linkLabel ?? "Visit Website"}
               <svg
                 className="h-4 w-4 ml-1"
                 fill="none"

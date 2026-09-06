@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.vercel
+npm-debug.log*
+coverage
+Dockerfile
+.dockerignore
+README.md

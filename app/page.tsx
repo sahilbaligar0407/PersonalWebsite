@@ -55,7 +55,7 @@ const MailIcon = () => (
 export default function Home() {
   const socialLinks = [
     { icon: LinkedinIcon, href: "https://www.linkedin.com/in/sahil-baligar/", label: "LinkedIn" },
-    { icon: GithubIcon, href: "https://github.com/sahilbaligar0407", label: "GitHub" },
+    { icon: GithubIcon, href: "https://github.com/sahil-baligar", label: "GitHub" },
     { icon: InstagramIcon, href: "https://www.instagram.com/sahilb_0/", label: "Instagram" },
   ];
 
@@ -63,48 +63,46 @@ export default function Home() {
     {
       title: "Data Science Intern",
       company: "FedEx",
-      period: "May 2026 – Aug 2026",
-      location: "Upcoming",
-      isUpcoming: true,
+      period: "Jun 2026 – Aug 2026",
+      location: "Memphis, TN",
       bullets: [
-        "Upcoming summer internship on FedEx data science initiatives",
-        "Focus on analytical modeling and data-driven insights starting May 2026",
+        "Developed a Python-based machine learning forecasting model to predict package volumes using FedEx sorting logic and operational data",
+        "Built an Agentic AI solution with Gemini and Vertex AI for business-insight retrieval and automated AI actions",
+        "Contributed full-stack development across the chat UI, backend, web search, and ML integrations",
+        "Shipped on GCP, Databricks, and Azure",
       ],
     },
     {
-      title: "QA Intern",
+      title: "IT / QA Intern",
       company: "Sedgwick",
       period: "May 2025 – Aug 2025",
-      location: "Memphis, TN (Hybrid)",
+      location: "Memphis, TN",
       bullets: [
-        "Conducted comprehensive RPA bot testing to ensure performance and reliability",
-        "Authored detailed test plans to improve testing efficiency",
-        "Used UIPath for automation and Playwright for end-to-end testing",
-        "Supported Sedgwick's mission as a global leader in risk and claims management through QA improvements",
+        "QA intern at a global leader in risk, claims, and loss management",
+        "Conducted RPA bot testing and authored detailed test plans",
+        "Automated workflows with UiPath and ran enterprise application testing with Playwright",
       ],
     },
     {
-      title: "Undergraduate Student Researcher",
-      company: "John Deere",
+      title: "Undergraduate Researcher",
+      company: "John Deere — The Data Mine, Purdue",
       period: "Aug 2024 – May 2025",
-      location: "West Lafayette, Indiana",
+      location: "West Lafayette, IN",
       bullets: [
-        "The Data Mine, Purdue University",
-        "Built Python ML models to estimate parts demand quantity",
-        "Used models: Random Forest, XGBoost, Holt-Winters, custom polynomial regression",
-        "Evaluated performance with RMSE and identified seasonal patterns",
-        "Worked in Agile/Kanban weekly sprints",
+        "Built a Python ML model to predict parts demand using Random Forest, XGBoost, and custom polynomial regression",
+        "Evaluated performance with RMSE and identified seasonal demand trends",
+        "Worked in an Agile/Kanban environment under John Deere mentors",
       ],
     },
     {
       title: "Software Engineer Intern",
-      company: "Roar Inc.",
+      company: "Roar Labs",
       period: "Sep 2022 – Apr 2023",
       location: "Remote (Mountain View, CA)",
       bullets: [
-        "Built web portal joinroar.co using NodeJS, JavaScript, Pug, GitHub",
-        "Worked under CEO at a STEM career-empowerment startup",
-        "Gained experience in building, testing, deployment, and collaboration",
+        "Built frontend for joinroar.co using JavaScript, NodeJS, Pug, and GitHub",
+        "Worked directly under the CEO at a startup empowering people in tech careers",
+        "Gained hands-on experience across building, testing, deployment, and collaboration",
       ],
     },
   ];
@@ -113,21 +111,25 @@ export default function Home() {
     {
       title: "GetUrSeat",
       description:
-        "A side B2B SaaS project for wellness services/companies: landing pages + dashboard for revenue tracking and client management.",
+        "A production full-stack web app built with React, TypeScript, Python, MongoDB, and REST APIs — designed, built, and deployed end-to-end across frontend, backend, database, and cloud (Vercel + Railway).",
       status: "live" as const,
       link: "https://geturseat.com",
     },
     {
-      title: "Shorts/Reels Virality Engine",
+      title: "RRender.ai",
       description:
-        "Shorts/Reel styled video clipping with captions, facial tracking, and a virality engine to gauge the most successful clips.",
-      status: "wip" as const,
+        "An AI creative platform that turns natural-language prompts into motion graphics, 3D Blender renders, narrated animations, and editable designs. Built with React, TypeScript, Node.js, Python, Remotion, Blender, and FFmpeg — with OAuth/OTP auth, Stripe billing, PostgreSQL/Prisma, AI orchestration, and Railway deployment.",
+      status: "live" as const,
+      link: "https://www.rrender.ai",
     },
     {
-      title: "QA Document Generator",
+      title: "Smart Schedule Hub",
       description:
-        "AI document generator catered for QA items (test plans, pass/fail tables, evidence, structured outputs).",
-      status: "wip" as const,
+        "An AI-powered calendar and scheduling app with iCal integration, a self-hosted small language model for smart planning, and per-user data storage — running on my own Railway infrastructure.",
+      status: "live" as const,
+      link: "/Calendar",
+      internal: true,
+      linkLabel: "Learn More",
     },
     {
       title: "Mobile Outfits App",
@@ -138,10 +140,23 @@ export default function Home() {
   ];
 
   const skills = {
-    Languages: ["Java", "Python", "C", "JavaScript", "R"],
-    "Frameworks/Tools": ["Playwright", "UIPath", "GitHub", "NodeJS"],
-    "ML/Data": ["XGBoost", "Random Forest", "Holt-Winters", "RMSE", "Forecasting"],
-    Web: ["Full-stack web development", "Dashboards", "Product UI"],
+    Languages: ["Python", "TypeScript", "JavaScript", "Java", "C", "R", "SQL"],
+    Frontend: ["React", "Next.js", "Vite", "Tailwind CSS", "Radix UI", "Framer Motion", "Remotion"],
+    "Backend & Data": ["Node.js", "Express", "Django", "Supabase", "PostgreSQL", "MongoDB", "Prisma", "REST APIs"],
+    "AI / ML & Data Science": [
+      "OpenAI",
+      "Gemini",
+      "Vertex AI",
+      "Agentic AI",
+      "XGBoost",
+      "Random Forest",
+      "scikit-learn",
+      "OpenCV",
+      "Pandas",
+      "NumPy",
+    ],
+    "Cloud & DevOps": ["GCP", "Azure", "Databricks", "Railway", "Vercel", "Docker", "Git", "GitHub"],
+    "QA & Testing": ["Playwright", "Vitest", "UiPath"],
   };
 
   return (
@@ -178,11 +193,12 @@ export default function Home() {
                 Sahil Baligar
               </h1>
               <p className="text-xl lg:text-2xl text-accent font-semibold mb-2">
-                Computer Science student @ Purdue University
+                Full-Stack Developer &amp; ML Engineer · CS @ Purdue University
               </p>
               <p className="text-lg text-gray-300 leading-relaxed max-w-2xl">
-                I build software products and automation that turn messy workflows into clean,
-                reliable systems.
+                I build end-to-end products — from polished React/TypeScript front-ends to
+                Node/Django back-ends — and work across AI/ML and data science to ship clean,
+                reliable software.
               </p>
             </motion.div>
 
@@ -193,9 +209,9 @@ export default function Home() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="space-y-2 text-gray-400"
             >
-              <p>• Sophomore in Computer Science at Purdue University</p>
-              <p>• Graduating Winter 2027</p>
-              <p>• Interested in: product engineering, automation, QA systems, ML/analytics</p>
+              <p>• Junior in Computer Science at Purdue University</p>
+              <p>• Graduating Winter 2027 (Dean's List &amp; Semester Honors)</p>
+              <p>• Interested in: Software Engineering, Machine Learning, Data Science &amp; AI</p>
             </motion.div>
 
             {/* Social Links */}
@@ -274,11 +290,6 @@ export default function Home() {
                       <h3 className="text-2xl font-bold text-white">
                         {exp.title} — {exp.company}
                       </h3>
-                      {exp.isUpcoming && (
-                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
-                          Upcoming
-                        </span>
-                      )}
                     </div>
                     <p className="text-gray-400">
                       {exp.period} | {exp.location}
@@ -319,6 +330,8 @@ export default function Home() {
                 description={project.description}
                 status={project.status}
                 link={project.link}
+                internal={project.internal}
+                linkLabel={project.linkLabel}
                 delay={index * 0.1}
               />
             ))}
