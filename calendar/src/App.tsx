@@ -22,7 +22,10 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
+        {/* Strip the trailing slash: BASE_URL is "/Calendar/" but the app is
+            reached at "/Calendar" (no slash). React Router fails to strip a
+            basename with a trailing slash and renders nothing → blank page. */}
+        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/+$/, "") || "/"}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<Calendar />} />
