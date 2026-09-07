@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ["Atkinson Hyperlegible", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Crimson Pro", "Georgia", "serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -63,14 +64,13 @@ export default {
         },
         course: {
           blue: "hsl(var(--course-blue))",
-          purple: "hsl(var(--course-purple))",
-          orange: "hsl(var(--course-orange))",
+          amber: "hsl(var(--course-amber))",
           green: "hsl(var(--course-green))",
-          pink: "hsl(var(--course-pink))",
+          purple: "hsl(var(--course-purple))",
+          rose: "hsl(var(--course-rose))",
         },
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
-        info: "hsl(var(--info))",
       },
       borderRadius: {
         lg: "var(--radius)",

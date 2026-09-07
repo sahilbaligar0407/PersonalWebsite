@@ -99,4 +99,23 @@ For AI locally, run Ollama on your machine (`ollama pull qwen2.5:3b-instruct`) a
 - Auth is self-hosted (bcrypt + JWT httpOnly cookie) — no Supabase Auth.
 - Data lives in Railway Postgres via Prisma — no Supabase DB/RLS.
 - The OpenAI client call moved server-side to the self-hosted SLM — no exposed key.
-- Screenshots are OCR'd in memory (`tesseract.js`) and discarded — never stored.
+- Screenshots are OCR'd in the browser (`tesseract.js`, `src/lib/ocr.ts`) and only
+  the recovered text is sent to `/api/ai/parse` — the image never leaves the
+  device, and the server needs no upload handling.
+
+## What changed when the newer calendar app was ported in
+
+- The front end is the rebuilt SmartCal UI (minimal design, dark mode, per-course
+  colours). The old animated scroll landing page was retired with it.
+- `GET /api/ics` was added: Brightspace sends no CORS headers, so the browser
+  could never fetch a real feed. It is auth-gated and refuses private/loopback
+  hosts, since it fetches a caller-supplied URL from inside the private network.
+- The .ics parser now reads the course code from `LOCATION` and drops
+  `- Available` openings and week headings. `src/test/ics.test.ts` pins this.
+- Assignment dates are resolved by `chrono-node` in JS rather than by the model,
+  which matters with a 3B model.
+- `GET /api/calendar` and `PUT /api/calendar/feed` now read and write the
+  `Calendar.subscriptionUrl` column, which already existed but was never used.
+- `GET /api/ai/status` backs the model indicator in the chat header.
+- Server-side OCR and the `/api/ai/parse-image` upload route were removed along
+  with `multer`; OCR is client-side now.

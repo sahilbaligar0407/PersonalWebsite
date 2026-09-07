@@ -14,9 +14,10 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isIP } from "node:net";
+import { lookup } from "node:dns/promises";
 
 import { initPrisma, getPrisma, isDbReady } from "./server/db.js";
 import {
@@ -28,8 +29,7 @@ import {
   requireAuth,
   readUser,
 } from "./server/auth.js";
-import { parseAssignmentsFromText, slmHealthy } from "./server/slm.js";
-import { extractTextFromImage } from "./server/ocr.js";
+import { parseAssignmentsFromText, slmHealthy, slmStatus } from "./server/slm.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
@@ -55,10 +55,9 @@ app.set("trust proxy", 1); // behind Railway's proxy (and the main-site rewrite)
 app.use(express.json({ limit: "512kb" }));
 app.use(cookieParser());
 
-const upload = multer({
-  storage: multer.memoryStorage(), // ephemeral — image never touches disk
-  limits: { fileSize: 8 * 1024 * 1024 },
-});
+// Screenshots are OCR'd in the browser (src/lib/ocr.ts) and only the recovered
+// text is sent to /api/ai/parse, so the server never receives an image and
+// needs no upload handling.
 
 // Everything the browser reaches lives on this router, mounted at BASE_PATH.
 const router = express.Router();
@@ -344,25 +343,108 @@ router.post("/api/ai/parse", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/api/ai/parse-image", requireAuth, upload.single("image"), async (req, res) => {
+// Model/service status, rendered in the chat header so a cold or missing SLM is
+// visible to the user instead of surfacing as a generic failure.
+router.get("/api/ai/status", async (_req, res) => res.json(await slmStatus()));
+
+// ---------- saved calendar feed ----------
+// The .ics subscription URL is remembered per calendar so the import field is
+// pre-filled next time. The column already existed; nothing read it before.
+router.get("/api/calendar", requireAuth, async (req, res) => {
   const prisma = dbGuard(res);
   if (!prisma) return;
-  if (!req.file?.buffer) return res.status(400).json({ error: "No image uploaded." });
+  const calendar = await getOrCreateCalendar(prisma, req.user.id);
+  res.json({ calendar: { id: calendar.id, feedUrl: calendar.subscriptionUrl } });
+});
 
-  const quota = await consumeAiQuota(prisma, req.user.id);
-  if (!quota.ok) {
-    return res.status(quota.status).json({ error: "Monthly AI limit reached.", usage: quota.usage });
-  }
-  try {
-    const text = await extractTextFromImage(req.file.buffer); // buffer discarded after this
-    if (!text || text.length < 2) {
-      return res.json({ assignments: [], text: "", usage: quota.usage });
+router.put("/api/calendar/feed", requireAuth, async (req, res) => {
+  const prisma = dbGuard(res);
+  if (!prisma) return;
+  const calendar = await getOrCreateCalendar(prisma, req.user.id);
+  const feedUrl = str(req.body?.feedUrl, 1000) || null;
+  await prisma.calendar.update({
+    where: { id: calendar.id },
+    data: { subscriptionUrl: feedUrl },
+  });
+  res.json({ ok: true, feedUrl });
+});
+
+// ---------- ICS relay ----------
+// Brightspace serves the feed without CORS headers, so the browser can never
+// fetch it directly. Relay it here instead. Because this fetches a
+// caller-supplied URL, it is guarded against pointing at internal addresses
+// (Railway's private network is reachable from this container).
+
+const BLOCKED_V4 = [
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^169\.254\./,
+  /^0\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+];
+
+async function isPubliclyRoutable(hostname) {
+  const addresses = isIP(hostname)
+    ? [{ address: hostname }]
+    : await lookup(hostname, { all: true });
+
+  return addresses.every(({ address }) => {
+    if (address.includes(":")) {
+      const a = address.toLowerCase();
+      return !(a === "::1" || a.startsWith("fc") || a.startsWith("fd") || a.startsWith("fe80"));
     }
-    const assignments = (await parseAssignmentsFromText(text)).map((a) => ({ ...a, source: "ai_image" }));
-    res.json({ assignments, text, usage: quota.usage });
+    return !BLOCKED_V4.some((re) => re.test(address));
+  });
+}
+
+router.get("/api/ics", requireAuth, async (req, res) => {
+  const raw = str(req.query.url, 1000);
+  if (!raw) return res.status(400).json({ error: "Missing calendar URL." });
+
+  let url;
+  try {
+    // webcal:// is what the Brightspace subscribe button hands out.
+    url = new URL(raw.replace(/^webcal:\/\//i, "https://"));
+  } catch {
+    return res.status(400).json({ error: "That does not look like a valid URL." });
+  }
+  if (!["http:", "https:"].includes(url.protocol)) {
+    return res.status(400).json({ error: "Only http and https calendar links are supported." });
+  }
+
+  try {
+    if (!(await isPubliclyRoutable(url.hostname))) {
+      return res.status(400).json({ error: "That host is not allowed." });
+    }
+  } catch {
+    return res.status(400).json({ error: "Could not resolve that host." });
+  }
+
+  try {
+    const upstream = await fetch(url, {
+      redirect: "follow",
+      headers: { Accept: "text/calendar, text/plain, */*", "User-Agent": "SmartCal/1.0" },
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    if (!upstream.ok) {
+      return res.status(502).json({
+        error: `Calendar server returned ${upstream.status}. Check that the link is still valid.`,
+      });
+    }
+
+    const text = await upstream.text();
+    if (!text.includes("BEGIN:VCALENDAR")) {
+      return res.status(422).json({
+        error:
+          "That link did not return a calendar file. Copy the .ics subscription URL from Brightspace.",
+      });
+    }
+
+    res.type("text/calendar").send(text);
   } catch (err) {
-    console.error("[ai/parse-image] failed:", err?.message || err);
-    res.status(502).json({ error: "Could not read that image.", usage: quota.usage });
+    res.status(504).json({ error: `Could not reach the calendar server: ${err.message}` });
   }
 });
 

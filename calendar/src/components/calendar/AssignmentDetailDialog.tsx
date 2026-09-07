@@ -1,21 +1,16 @@
+import { format, parseISO } from "date-fns";
+import { ExternalLink, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Trash2 } from "lucide-react";
-import type { Assignment } from "@/types/assignment";
+import { courseColorClasses } from "@/lib/course-colors";
 import { cn } from "@/lib/utils";
-
-const courseColorMap: Record<string, string> = {
-  blue: "bg-course-blue",
-  purple: "bg-course-purple",
-  orange: "bg-course-orange",
-  green: "bg-course-green",
-  pink: "bg-course-pink",
-};
+import type { Assignment } from "@/types/assignment";
 
 interface AssignmentDetailDialogProps {
   assignment: Assignment | null;
@@ -24,6 +19,13 @@ interface AssignmentDetailDialogProps {
   onDelete: (id: string) => void;
   onDeleteSimilar?: (assignment: Assignment) => void;
 }
+
+const SOURCE_LABEL: Record<Assignment["source"], string> = {
+  ics: "Imported from Brightspace",
+  manual: "Added manually",
+  ai_text: "Added by the local model",
+  ai_image: "Added from an image",
+};
 
 export function AssignmentDetailDialog({
   assignment,
@@ -34,61 +36,70 @@ export function AssignmentDetailDialog({
 }: AssignmentDetailDialogProps) {
   if (!assignment) return null;
 
-  const colorClass = courseColorMap[assignment.color] ?? "bg-primary/20";
+  const { bg, text } = courseColorClasses(assignment.color, assignment.course);
+  const due = parseISO(assignment.dueDate);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span className={cn("w-2 h-2 rounded-full flex-shrink-0", colorClass)} />
-            {assignment.course} - {assignment.name}
-          </DialogTitle>
+          <span className={cn("text-[11px] font-bold uppercase tracking-wide", text)}>
+            <span
+              className={cn("mr-2 inline-block h-2 w-2 rounded-full align-middle", bg)}
+              aria-hidden="true"
+            />
+            {assignment.course}
+          </span>
+          <DialogTitle className="text-left text-xl">{assignment.name}</DialogTitle>
+          <DialogDescription className="text-left">
+            Due {format(due, "EEEE, MMMM d, yyyy")}
+            {assignment.dueTime && ` at ${assignment.dueTime}`}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>
-              <span className="text-foreground font-medium">Due:</span> {assignment.dueDate}
-              {assignment.dueTime && ` at ${assignment.dueTime}`}
-            </p>
-            {assignment.link && (
-              <a
-                href={assignment.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-primary hover:underline"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Open assignment link
-              </a>
-            )}
+
+        <dl className="rule border-b-0 border-t border-border pt-4 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Source</dt>
+            <dd className="text-foreground">{SOURCE_LABEL[assignment.source]}</dd>
           </div>
-          <div className="flex gap-2 pt-2">
+        </dl>
+
+        {assignment.link && (
+          <a
+            href={assignment.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-bold text-primary underline underline-offset-4"
+          >
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            Open in Brightspace
+          </a>
+        )}
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              onDelete(assignment.id);
+              onOpenChange(false);
+            }}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Delete
+          </Button>
+          {onDeleteSimilar && (
             <Button
-              variant="destructive"
+              variant="outline"
               size="sm"
-              className="gap-2"
               onClick={() => {
-                onDelete(assignment.id);
+                onDeleteSimilar(assignment);
                 onOpenChange(false);
               }}
             >
-              <Trash2 className="w-4 h-4" />
-              Delete
+              Delete duplicates
             </Button>
-            {onDeleteSimilar && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  onDeleteSimilar(assignment);
-                  onOpenChange(false);
-                }}
-              >
-                Delete all similar
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

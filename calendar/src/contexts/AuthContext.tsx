@@ -1,17 +1,15 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
-import { api, ApiError } from "@/lib/api";
-
-export type AuthUser = { id: string; email: string };
+import { api, type ApiUser } from "@/lib/api";
 
 type AuthContextType = {
-  user: AuthUser | null;
-  session: { user: AuthUser } | null;
+  user: ApiUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -21,56 +19,64 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<ApiUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // The session lives in an httpOnly cookie this code cannot read, so the only
+  // way to know whether one exists is to ask the server. /auth/me answers
+  // { user: null } rather than 401 when signed out, so this is a cheap probe.
   useEffect(() => {
-    // Restore session from the httpOnly cookie via /api/auth/me.
+    let cancelled = false;
+
     api
-      .get("/auth/me")
-      .then((data) => setUser(data?.user ?? null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .me()
+      .then(({ user }) => {
+        if (!cancelled) setUser(user);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const data = await api.post("/auth/signin", { email, password });
-      setUser(data.user);
+      const { user } = await api.signIn(email, password);
+      setUser(user);
       return { error: null };
     } catch (err) {
-      return { error: err instanceof ApiError ? err : new Error("Sign in failed") };
+      return { error: err instanceof Error ? err : new Error("Sign in failed") };
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string) => {
     try {
-      const data = await api.post("/auth/signup", { email, password });
-      setUser(data.user);
+      const { user } = await api.signUp(email, password);
+      setUser(user);
       return { error: null };
     } catch (err) {
-      return { error: err instanceof ApiError ? err : new Error("Sign up failed") };
+      return { error: err instanceof Error ? err : new Error("Sign up failed") };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
-    try {
-      await api.post("/auth/signout");
-    } finally {
-      setUser(null);
-    }
-  };
+  const signOut = useCallback(async () => {
+    // Clearing the cookie is the server's job; drop local state either way so a
+    // network failure can't strand the user in a signed-in-looking UI.
+    await api.signOut().catch(() => {});
+    setUser(null);
+  }, []);
 
-  const value: AuthContextType = {
-    user,
-    session: user ? { user } : null,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

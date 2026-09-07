@@ -1,51 +1,37 @@
 /**
- * Classify user input into AI modes to minimize API usage.
- * Mode 1: Platform questions - no API
- * Mode 2: Assignment parsing - requires API
- * Mode 3: Unsupported - no API
+ * Routes chat input to either a canned answer or the local model.
+ *
+ * This used to also refuse anything mentioning "java", "code", "project" etc.
+ * to conserve paid API calls — which rejected real input like
+ * "CS252 Java project due Friday". The model is local and free, so anything
+ * that isn't clearly a question about the app now goes to the parser.
  */
-export type AIMode = "platform" | "assignment" | "unsupported";
+export type AIMode = "platform" | "assignment";
 
-const PLATFORM_KEYWORDS = [
-  "hi", "hello", "hey", "what", "how", "does", "work", "this", "website",
-  "help", "explain", "tell me", "can you", "what is", "how do i",
-  "calendar", "smartcal", "features", "about",
+/** Short questions about SmartCal itself, answered without the model. */
+const PLATFORM_PATTERNS = [
+  /^(hi|hey|hello|yo|sup)\b/i,
+  /\b(how|what|why|who|where)\b.*\b(work|works|use|using|this|smartcal|app|site)\b/i,
+  /\b(help|what can you do|who are you)\b/i,
 ];
 
 const ASSIGNMENT_PATTERNS = [
-  /\b(due|deadline|homework|hw|lab|quiz|exam|assignment|essay|project)\b/i,
-  /\b(cs\d+|math\d+|eng\d+|phys\d+|stat\d+|com\d+)\s/i,
-  /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
-  /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i,
-  /\b\d{1,2}\/\d{1,2}\b/, // date like 4/12
-  /\b(add|paste|here is|here's)\s/i,
-];
-
-const UNSUPPORTED_PATTERNS = [
-  /\b(write|code|program|python|javascript|java)\b/i,
-  /\b(create|build)\s+(a\s+)?(script|app|website)\b/i,
-  /\b(summarize|translate|translate to)\b/i,
+  /\b(due|deadline|homework|hw|lab|quiz|exam|assignment|essay|project|paper|reading|midterm|final)\b/i,
+  /\b[a-z]{2,5}\s?\d{3,5}\b/i,
+  /\b(mon|tues|wednes|thurs|fri|satur|sun)day\b/i,
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i,
+  /\b\d{1,2}\/\d{1,2}\b/,
+  /\b\d{4}-\d{2}-\d{2}\b/,
 ];
 
 export function classifyInput(text: string): AIMode {
-  const trimmed = text.trim().toLowerCase();
+  const trimmed = text.trim();
   if (trimmed.length < 2) return "platform";
 
-  for (const p of UNSUPPORTED_PATTERNS) {
-    if (p.test(text)) return "unsupported";
-  }
+  // Anything that looks like a deadline goes to the parser, even if it also
+  // reads like a question.
+  if (ASSIGNMENT_PATTERNS.some((p) => p.test(trimmed))) return "assignment";
+  if (PLATFORM_PATTERNS.some((p) => p.test(trimmed))) return "platform";
 
-  const isPlatform = PLATFORM_KEYWORDS.some((k) => trimmed.includes(k)) &&
-    (trimmed.length < 50 || trimmed.includes("how") || trimmed.includes("what"));
-
-  if (isPlatform && !ASSIGNMENT_PATTERNS.some((p) => p.test(text))) {
-    return "platform";
-  }
-
-  if (ASSIGNMENT_PATTERNS.some((p) => p.test(text))) {
-    return "assignment";
-  }
-
-  if (trimmed.length > 100) return "assignment";
-  return "platform";
+  return "assignment";
 }

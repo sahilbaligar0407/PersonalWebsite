@@ -1,15 +1,18 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { COURSE_COLORS, courseColorClasses, type CourseColor } from "@/lib/course-colors";
+import { cn } from "@/lib/utils";
 import type { AssignmentInsert } from "@/types/assignment";
-import { format } from "date-fns";
 
 interface ManualAddDialogProps {
   open: boolean;
@@ -17,61 +20,71 @@ interface ManualAddDialogProps {
   onSubmit: (a: AssignmentInsert) => Promise<{ success: boolean; duplicate?: boolean }>;
 }
 
-const COURSE_COLORS = [
-  { value: "blue", label: "Blue" },
-  { value: "purple", label: "Purple" },
-  { value: "orange", label: "Orange" },
-  { value: "green", label: "Green" },
-  { value: "pink", label: "Pink" },
-];
+const COLOR_LABELS: Record<CourseColor, string> = {
+  blue: "Blue",
+  amber: "Amber",
+  green: "Green",
+  purple: "Purple",
+  rose: "Rose",
+};
 
-export function ManualAddDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-}: ManualAddDialogProps) {
+/** "14:30" from <input type="time"> to the "2:30 PM" the app stores. */
+function toStoredTime(value: string): string | null {
+  if (!value) return null;
+  const [h, m] = value.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const period = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+export function ManualAddDialog({ open, onOpenChange, onSubmit }: ManualAddDialogProps) {
   const [course, setCourse] = useState("");
   const [name, setName] = useState("");
   const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [dueTime, setDueTime] = useState("");
   const [link, setLink] = useState("");
-  const [color, setColor] = useState("blue");
+  const [color, setColor] = useState<CourseColor>("blue");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const formatTimeForStorage = (time: string) => {
-    if (!time) return null;
-    const [h, m] = time.split(":").map(Number);
-    const period = h >= 12 ? "PM" : "AM";
-    const hour = h % 12 || 12;
-    return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+  const reset = () => {
+    setCourse("");
+    setName("");
+    setDueDate(format(new Date(), "yyyy-MM-dd"));
+    setDueTime("");
+    setLink("");
+    setColor("blue");
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     if (!course.trim() || !name.trim()) {
-      setError("Course and assignment name are required");
+      setError("Course and assignment name are both required.");
       return;
     }
+
+    setSaving(true);
     const result = await onSubmit({
       course: course.trim(),
       name: name.trim(),
       dueDate,
-      dueTime: dueTime.trim() ? formatTimeForStorage(dueTime) : null,
+      dueTime: toStoredTime(dueTime),
       link: link.trim() || null,
       color,
       source: "manual",
     });
+    setSaving(false);
+
     if (result.success) {
+      reset();
       onOpenChange(false);
-      setCourse("");
-      setName("");
-      setDueDate(format(new Date(), "yyyy-MM-dd"));
-      setDueTime("");
-      setLink("");
-      setColor("blue");
     } else if (result.duplicate) {
-      setError("This assignment already exists");
+      setError("That assignment is already on your calendar.");
+    } else {
+      setError("Could not save. Check that the server is running.");
     }
   };
 
@@ -79,30 +92,36 @@ export function ManualAddDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Assignment</DialogTitle>
+          <DialogTitle>Add an assignment</DialogTitle>
+          <DialogDescription>
+            For a whole semester, import your Brightspace link instead.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <Label htmlFor="course">Course name</Label>
+            <Label htmlFor="course">Course</Label>
             <Input
               id="course"
               value={course}
               onChange={(e) => setCourse(e.target.value)}
-              placeholder="e.g. CS 251"
-              className="mt-1"
+              placeholder="CS 25200"
+              className="mt-1.5"
             />
           </div>
+
           <div>
-            <Label htmlFor="name">Assignment name</Label>
+            <Label htmlFor="name">Assignment</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Homework 5"
-              className="mt-1"
+              placeholder="Homework 5"
+              className="mt-1.5"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="dueDate">Due date</Label>
               <Input
@@ -110,65 +129,73 @@ export function ManualAddDialog({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="mt-1"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <Label htmlFor="dueTime">Due time (optional)</Label>
+              <Label htmlFor="dueTime">Time</Label>
               <Input
                 id="dueTime"
                 type="time"
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
-                className="mt-1"
+                className="mt-1.5"
               />
             </div>
           </div>
+
           <div>
-            <Label htmlFor="link">Link (optional)</Label>
+            <Label htmlFor="link">Link</Label>
             <Input
               id="link"
               type="url"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              placeholder="https://..."
-              className="mt-1"
+              placeholder="https://…"
+              className="mt-1.5"
             />
           </div>
-          <div>
-            <Label>Color</Label>
-            <div className="flex gap-2 mt-1 flex-wrap">
-              {COURSE_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setColor(c.value)}
-                  className={`w-6 h-6 rounded-full border-2 transition-colors ${
-                    color === c.value
-                      ? "border-foreground ring-2 ring-offset-2 ring-offset-background"
-                      : "border-transparent"
-                  } ${
-                    c.value === "blue"
-                      ? "bg-course-blue"
-                      : c.value === "purple"
-                      ? "bg-course-purple"
-                      : c.value === "orange"
-                      ? "bg-course-orange"
-                      : c.value === "green"
-                      ? "bg-course-green"
-                      : "bg-course-pink"
-                  }`}
-                  title={c.label}
-                />
-              ))}
+
+          <fieldset>
+            <legend className="text-sm font-bold text-foreground">Colour</legend>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {COURSE_COLORS.map((value) => {
+                const { bg } = courseColorClasses(value, value);
+                const selected = color === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setColor(value)}
+                    aria-pressed={selected}
+                    aria-label={COLOR_LABELS[value]}
+                    title={COLOR_LABELS[value]}
+                    className={cn(
+                      "h-8 w-8 rounded-full transition-transform",
+                      bg,
+                      selected
+                        ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                        : "hover:scale-110"
+                    )}
+                  />
+                );
+              })}
             </div>
-          </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
-          <div className="flex justify-end gap-2">
+          </fieldset>
+
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Add</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Add"}
+            </Button>
           </div>
         </form>
       </DialogContent>

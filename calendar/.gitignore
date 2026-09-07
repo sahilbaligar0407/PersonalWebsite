@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated OCR assets (npm run setup:ocr / postinstall)
+public/tesseract/

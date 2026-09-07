@@ -1,164 +1,133 @@
 import * as React from "react";
 import {
   add,
+  addDays,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
   format,
-  getDay,
-  isEqual,
   isSameDay,
   isSameMonth,
   isToday,
   parse,
   startOfToday,
   startOfWeek,
-  startOfDay,
-  endOfDay,
-  eachWeekOfInterval,
-  addDays,
 } from "date-fns";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusCircleIcon,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAssignments } from "@/contexts/AssignmentContext";
-import { assignmentsToCalendarData, parseTimeToHour, type CalendarDay, type CalendarEvent } from "@/lib/calendar-utils";
+import { assignmentsToCalendarData, type CalendarEvent } from "@/lib/calendar-utils";
+import { courseColorClasses } from "@/lib/course-colors";
 import { AssignmentDetailDialog } from "./AssignmentDetailDialog";
 import { ManualAddDialog } from "./ManualAddDialog";
 import type { Assignment } from "@/types/assignment";
 
-const colStartClasses = [
-  "",
-  "col-start-2",
-  "col-start-3",
-  "col-start-4",
-  "col-start-5",
-  "col-start-6",
-  "col-start-7",
-];
+type ViewMode = "month" | "week" | "day";
 
-const courseColorMap: Record<string, string> = {
-  blue: "bg-course-blue/25 text-foreground border border-course-blue/40",
-  purple: "bg-course-purple/25 text-foreground border border-course-purple/40",
-  orange: "bg-course-orange/25 text-foreground border border-course-orange/40",
-  green: "bg-course-green/25 text-foreground border border-course-green/40",
-  pink: "bg-course-pink/25 text-foreground border border-course-pink/40",
-};
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MAX_CHIPS_PER_CELL = 3;
 
-type ViewMode = "month" | "week" | "day" | "year";
-
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6am to 11pm
-
-function DayViewContent({
-  selectedDay,
-  events,
-  onEventClick,
-  courseColorMap,
+/**
+ * A deadline chip. Colour sits on a left rule rather than a translucent fill,
+ * so the label keeps full contrast in both themes.
+ */
+function EventChip({
+  event,
+  onClick,
+  showTime = true,
 }: {
-  selectedDay: Date;
-  events: CalendarEvent[];
-  onEventClick: (a: Assignment) => void;
-  courseColorMap: Record<string, string>;
+  event: CalendarEvent;
+  onClick: (a: Assignment) => void;
+  showTime?: boolean;
 }) {
-  const allDayEvents = events.filter((e) => !e.time || !parseTimeToHour(e.time));
-  const timedEvents = events.filter((e) => e.time && parseTimeToHour(e.time) != null);
-  const byHour = new Map<number, CalendarEvent[]>();
-  for (const evt of timedEvents) {
-    const h = parseTimeToHour(evt.time!);
-    if (h != null) {
-      const slot = Math.floor(h);
-      const list = byHour.get(slot) ?? [];
-      list.push(evt);
-      byHour.set(slot, list);
-    }
-  }
-  for (const list of byHour.values()) {
-    list.sort((a, b) => (parseTimeToHour(a.time!) ?? 0) - (parseTimeToHour(b.time!) ?? 0));
-  }
+  const { bg, text } = courseColorClasses(event.assignment.color, event.assignment.course);
 
   return (
-    <div className="flex flex-col h-full overflow-auto">
-      <div className="sticky top-0 z-10 px-4 py-3 bg-card/95 border-b border-border shadow-sm backdrop-blur">
-        <h3 className="text-base font-semibold text-foreground">
-          {format(selectedDay, "EEEE, MMMM d, yyyy")}
-        </h3>
-        <p className="text-xs text-foreground/70 mt-0.5">
-          {events.length} {events.length === 1 ? "event" : "events"} today
-        </p>
-      </div>
-      {events.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-4">
-          <p className="text-foreground/85 text-sm font-medium">No events this day</p>
-          <p className="text-foreground/65 text-xs mt-1">Your schedule is clear</p>
-        </div>
-      ) : (
-      <div className="flex-1 p-4 space-y-4">
-        {allDayEvents.length > 0 && (
-          <div>
-            <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-2">
-              All day
-            </div>
-            <div className="space-y-2">
-              {allDayEvents.map((evt) => (
-                <div
-                  key={evt.id}
-                  onClick={() => onEventClick(evt.assignment)}
-                  className={cn(
-                    "rounded-lg p-3 cursor-pointer hover:opacity-90 transition-opacity border",
-                    courseColorMap[evt.assignment.color] ?? "bg-primary/15 text-foreground border-primary/30"
-                  )}
-                >
-                  <p className="font-medium text-foreground">{evt.assignment.course} – {evt.assignment.name}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(event.assignment);
+      }}
+      title={`${event.assignment.course} — ${event.assignment.name}`}
+      className="group flex w-full items-start gap-1.5 rounded-sm bg-secondary px-1.5 py-1 text-left
+                 hover:bg-border focus-visible:bg-border transition-colors"
+    >
+      <span className={cn("mt-[5px] h-2.5 w-0.5 shrink-0 rounded-full", bg)} aria-hidden="true" />
+      <span className="min-w-0 flex-1">
+        <span className={cn("block text-[10px] font-bold leading-tight", text)}>
+          {event.assignment.course}
+        </span>
+        <span className="block truncate text-[11px] leading-tight text-foreground">
+          {event.assignment.name}
+        </span>
+        {showTime && event.time && (
+          <span className="block text-[10px] leading-tight text-muted-foreground">
+            {event.time}
+          </span>
         )}
-        <div>
-          <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-2">
-            Schedule
-          </div>
-          <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
-            {HOURS.map((hour) => {
-              const hourEvents = byHour.get(hour) ?? [];
-              const ampm = hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`;
-              return (
-                <div
-                  key={hour}
-                  className="flex min-h-[56px] bg-card/30"
+      </span>
+    </button>
+  );
+}
+
+function DayList({
+  day,
+  events,
+  onEventClick,
+}: {
+  day: Date;
+  events: CalendarEvent[];
+  onEventClick: (a: Assignment) => void;
+}) {
+  return (
+    <div className="mx-auto w-full max-w-3xl p-6">
+      <header className="mb-6">
+        <p className="eyebrow mb-1">{format(day, "EEEE")}</p>
+        <h3 className="text-2xl font-semibold text-foreground">
+          {format(day, "MMMM d, yyyy")}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {events.length === 0
+            ? "Nothing due."
+            : `${events.length} deadline${events.length === 1 ? "" : "s"}`}
+        </p>
+      </header>
+
+      {events.length > 0 && (
+        <ul className="panel divide-y divide-border">
+          {events.map((event) => {
+            const { text, bg } = courseColorClasses(
+              event.assignment.color,
+              event.assignment.course
+            );
+            return (
+              <li key={event.id}>
+                <button
+                  type="button"
+                  onClick={() => onEventClick(event.assignment)}
+                  className="flex w-full items-start gap-3 p-4 text-left hover:bg-secondary
+                             focus-visible:bg-secondary transition-colors"
                 >
-                  <div className="w-16 flex-shrink-0 py-2 px-2 text-xs font-medium text-foreground/80 border-r border-border">
-                    {ampm}
-                  </div>
-                  <div className="flex-1 p-2 space-y-2">
-                    {hourEvents.length === 0 ? (
-                      <div className="h-8" />
-                    ) : (
-                      hourEvents.map((evt) => (
-                        <div
-                          key={evt.id}
-                          onClick={() => onEventClick(evt.assignment)}
-                          className={cn(
-                            "rounded-lg px-3 py-2 cursor-pointer hover:opacity-90 transition-opacity text-sm border",
-                            courseColorMap[evt.assignment.color] ?? "bg-primary/15 text-foreground border-primary/30"
-                          )}
-                        >
-                          <p className="font-medium text-foreground">{evt.assignment.course} – {evt.assignment.name}</p>
-                          <p className="text-xs text-foreground/80 mt-0.5">{evt.time}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+                  <span
+                    className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", bg)}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block text-[11px] font-bold uppercase tracking-wide", text)}>
+                      {event.assignment.course}
+                    </span>
+                    <span className="block text-foreground">{event.assignment.name}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-bold text-muted-foreground">
+                    {event.time ?? "All day"}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
@@ -167,6 +136,7 @@ function DayViewContent({
 export function FullScreenCalendar() {
   const { assignments, addAssignment, removeAssignment, removeAssignments } = useAssignments();
   const today = startOfToday();
+
   const [selectedDay, setSelectedDay] = React.useState(today);
   const [currentMonth, setCurrentMonth] = React.useState(format(today, "MMM-yyyy"));
   const [viewMode, setViewMode] = React.useState<ViewMode>("month");
@@ -174,32 +144,36 @@ export function FullScreenCalendar() {
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [manualAddOpen, setManualAddOpen] = React.useState(false);
 
-  const data = React.useMemo(
-    () => assignmentsToCalendarData(assignments),
-    [assignments]
-  );
+  const data = React.useMemo(() => assignmentsToCalendarData(assignments), [assignments]);
 
   const firstDayCurrentMonth = parse(currentMonth, "MMM-yyyy", new Date());
 
-  const days = eachDayOfInterval({
-    start: startOfWeek(firstDayCurrentMonth),
-    end: endOfWeek(endOfMonth(firstDayCurrentMonth)),
-  });
+  const monthDays = React.useMemo(
+    () =>
+      eachDayOfInterval({
+        start: startOfWeek(firstDayCurrentMonth),
+        end: endOfWeek(endOfMonth(firstDayCurrentMonth)),
+      }),
+    [currentMonth]
+  );
 
   const weekStart = startOfWeek(selectedDay);
-  const weekDays = eachDayOfInterval({
-    start: weekStart,
-    end: addDays(weekStart, 6),
-  });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
 
-  const previousMonth = () => {
-    const d = add(firstDayCurrentMonth, { months: -1 });
-    setCurrentMonth(format(d, "MMM-yyyy"));
-  };
+  const eventsForDay = React.useCallback(
+    (day: Date) => data.filter((d) => isSameDay(d.day, day)).flatMap((d) => d.events),
+    [data]
+  );
 
-  const nextMonth = () => {
-    const d = add(firstDayCurrentMonth, { months: 1 });
-    setCurrentMonth(format(d, "MMM-yyyy"));
+  const step = (direction: 1 | -1) => {
+    if (viewMode === "month") {
+      setCurrentMonth(format(add(firstDayCurrentMonth, { months: direction }), "MMM-yyyy"));
+      return;
+    }
+    const days = viewMode === "week" ? 7 : 1;
+    const next = addDays(selectedDay, direction * days);
+    setSelectedDay(next);
+    setCurrentMonth(format(next, "MMM-yyyy"));
   };
 
   const goToToday = () => {
@@ -207,10 +181,7 @@ export function FullScreenCalendar() {
     setSelectedDay(today);
   };
 
-  const getEventsForDay = (day: Date) =>
-    data.filter((d) => isSameDay(d.day, day)).flatMap((d) => d.events);
-
-  const handleEventClick = (assignment: Assignment) => {
+  const openAssignment = (assignment: Assignment) => {
     setDetailAssignment(assignment);
     setDetailOpen(true);
   };
@@ -225,132 +196,134 @@ export function FullScreenCalendar() {
     removeAssignments(toRemove.map((a) => a.id));
   };
 
-  const viewTabs: { mode: ViewMode; label: string }[] = [
-    { mode: "month", label: "Month" },
-    { mode: "week", label: "Week" },
-    { mode: "day", label: "Day" },
-  ];
-
-  const handleDayCellClick = (day: Date) => {
-    setSelectedDay(day);
-    setViewMode("day");
-  };
+  const title =
+    viewMode === "month"
+      ? format(firstDayCurrentMonth, "MMMM yyyy")
+      : viewMode === "week"
+        ? `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
+        : format(selectedDay, "MMMM d, yyyy");
 
   return (
-    <div className="flex flex-1 flex-col h-full">
-      {/* Calendar Header */}
-      <div className="flex flex-col gap-4 border-b border-border bg-card/30 px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">
-                {format(today, "d")}
-              </span>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                {viewMode === "month" && format(firstDayCurrentMonth, "MMMM yyyy")}
-                {viewMode === "week" && `Week of ${format(weekStart, "MMM d")}`}
-                {viewMode === "day" && format(selectedDay, "EEEE, MMM d, yyyy")}
-              </h2>
-              <p className="text-xs text-foreground/70">
-                {format(firstDayCurrentMonth, "MMM d")} –{" "}
-                {format(endOfMonth(firstDayCurrentMonth), "MMM d, yyyy")}
-              </p>
-            </div>
-          </div>
+    <div className="flex h-full flex-1 flex-col bg-background">
+      <header className="flex flex-col gap-3 rule bg-card px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <p className="text-sm text-muted-foreground">
+            {assignments.length} deadline{assignments.length === 1 ? "" : "s"} saved
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            {viewTabs.map((tab) => (
+          <div
+            role="tablist"
+            aria-label="Calendar view"
+            className="flex overflow-hidden rounded-md border border-border"
+          >
+            {(["month", "week", "day"] as const).map((mode) => (
               <button
-                key={tab.mode}
-                onClick={() => setViewMode(tab.mode)}
+                key={mode}
+                role="tab"
+                aria-selected={viewMode === mode}
+                onClick={() => setViewMode(mode)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === tab.mode
+                  "px-3 py-2 text-xs font-bold capitalize transition-colors",
+                  viewMode === mode
                     ? "bg-primary text-primary-foreground"
-                    : "text-foreground/75 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
               >
-                {tab.label}
+                {mode}
               </button>
             ))}
           </div>
 
-          <Button variant="outline" size="icon" onClick={previousMonth}>
-            <ChevronLeftIcon className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={goToToday}>
-            Today
-          </Button>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" onClick={() => step(-1)} aria-label="Previous">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToToday} className="h-11">
+              Today
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => step(1)} aria-label="Next">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
 
-          <Button variant="default" size="sm" onClick={() => setManualAddOpen(true)}>
-            <PlusCircleIcon className="h-4 w-4 mr-1" />
-            New Event
+          <Button onClick={() => setManualAddOpen(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Calendar Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto scrollbar-thin">
         {viewMode === "month" && (
-          <div className="grid grid-cols-7 h-full min-h-[400px]">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+          <div className="grid h-full grid-cols-7 border-l border-border">
+            {WEEKDAYS.map((d) => (
               <div
                 key={d}
-                className="py-2 text-center text-xs font-semibold text-foreground/80 uppercase tracking-wider border-b border-border bg-muted/20"
+                className="rule border-r border-border bg-card py-2 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
               >
-                {d}
+                <span className="hidden sm:inline">{d}</span>
+                <span className="sm:hidden">{d[0]}</span>
               </div>
             ))}
-            {days.map((day, dayIdx) => {
-              const dayEvents = getEventsForDay(day);
+
+            {monthDays.map((day) => {
+              const dayEvents = eventsForDay(day);
+              const outside = !isSameMonth(day, firstDayCurrentMonth);
+              const selected = isSameDay(day, selectedDay);
+
               return (
                 <div
-                  key={dayIdx}
-                  onClick={() => handleDayCellClick(day)}
+                  key={day.toISOString()}
+                  onClick={() => {
+                    setSelectedDay(day);
+                    setViewMode("day");
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedDay(day);
+                      setViewMode("day");
+                    }
+                  }}
+                  aria-label={`${format(day, "MMMM d")}, ${dayEvents.length} deadlines`}
                   className={cn(
-                    dayIdx === 0 && colStartClasses[getDay(day)],
-                    !isSameMonth(day, firstDayCurrentMonth) && "bg-muted/30 text-foreground/60",
-                    "flex flex-col border-b border-r border-border hover:bg-muted/50 cursor-pointer transition-colors min-h-[80px]"
+                    "flex min-h-[92px] cursor-pointer flex-col border-b border-r border-border p-1.5 transition-colors",
+                    outside ? "bg-muted/40" : "bg-card hover:bg-secondary",
+                    selected && "ring-2 ring-inset ring-ring"
                   )}
                 >
-                  <div className="flex justify-end p-1.5">
+                  <div className="mb-1 flex justify-end">
                     <span
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                        isToday(day) && "bg-primary text-primary-foreground font-bold",
-                        isEqual(day, selectedDay) && !isToday(day) && "bg-secondary"
+                        "grid h-6 w-6 place-items-center rounded-full text-xs font-bold",
+                        isToday(day)
+                          ? "bg-primary text-primary-foreground"
+                          : outside
+                            ? "text-muted-foreground/60"
+                            : "text-foreground"
                       )}
                     >
                       {format(day, "d")}
                     </span>
                   </div>
-                  <div className="flex-1 px-1.5 pb-1 space-y-0.5 overflow-hidden">
-                    {dayEvents.slice(0, 3).map((evt) => (
-                      <div
-                        key={evt.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEventClick(evt.assignment);
-                        }}
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px] truncate cursor-pointer hover:opacity-80",
-                          courseColorMap[evt.assignment.color] ?? "bg-primary/15 text-foreground border border-primary/30"
-                        )}
-                      >
-                        {evt.assignment.course} - {evt.assignment.name}
-                        {evt.time && ` - ${evt.time}`}
-                      </div>
+
+                  <div className="flex-1 space-y-0.5 overflow-hidden">
+                    {dayEvents.slice(0, MAX_CHIPS_PER_CELL).map((event) => (
+                      <EventChip
+                        key={event.id}
+                        event={event}
+                        onClick={openAssignment}
+                        showTime={false}
+                      />
                     ))}
-                    {dayEvents.length > 3 && (
-                      <p className="text-[10px] text-foreground/75 px-1.5 font-medium">
-                        +{dayEvents.length - 3} more
+                    {dayEvents.length > MAX_CHIPS_PER_CELL && (
+                      <p className="px-1.5 text-[10px] font-bold text-muted-foreground">
+                        +{dayEvents.length - MAX_CHIPS_PER_CELL} more
                       </p>
                     )}
                   </div>
@@ -361,48 +334,48 @@ export function FullScreenCalendar() {
         )}
 
         {viewMode === "week" && (
-          <div className="grid grid-cols-8 min-h-[300px]">
-            <div className="border-b border-r border-border p-2 text-xs font-medium text-foreground/80 bg-muted/20" />
-            {weekDays.map((day) => (
-              <div
-                key={day.toISOString()}
-                className="border-b border-r border-border p-2 text-center text-xs font-semibold text-foreground bg-muted/20"
-              >
-                {format(day, "EEE d")}
-              </div>
-            ))}
-            <div className="border-b border-r border-border p-2 text-xs font-medium text-foreground/80 bg-muted/20">
-              Events
-            </div>
-            {weekDays.map((day) => (
-              <div
-                key={day.toISOString()}
-                className="border-b border-r border-border p-2 space-y-1 min-h-[120px] bg-card/20"
-              >
-                {getEventsForDay(day).map((evt) => (
-                  <div
-                    key={evt.id}
-                    onClick={() => handleEventClick(evt.assignment)}
+          <div className="grid min-h-full grid-cols-1 border-l border-border sm:grid-cols-7">
+            {weekDays.map((day) => {
+              const dayEvents = eventsForDay(day);
+              return (
+                <div key={day.toISOString()} className="flex flex-col border-b border-r border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDay(day);
+                      setViewMode("day");
+                    }}
                     className={cn(
-                      "rounded px-2 py-1 text-xs font-medium cursor-pointer hover:opacity-90 truncate text-foreground",
-                      courseColorMap[evt.assignment.color] ?? "bg-primary/15 border border-primary/30"
+                      "rule bg-card px-2 py-2 text-center transition-colors hover:bg-secondary",
+                      isToday(day) && "bg-primary text-primary-foreground hover:bg-primary/90"
                     )}
                   >
-                    {evt.assignment.name}
-                    {evt.time && ` ${evt.time}`}
+                    <span className="block text-[10px] font-bold uppercase tracking-wider opacity-80">
+                      {format(day, "EEE")}
+                    </span>
+                    <span className="block text-lg font-bold">{format(day, "d")}</span>
+                  </button>
+
+                  <div className="flex-1 space-y-1 bg-card p-1.5">
+                    {dayEvents.length === 0 ? (
+                      <p className="p-2 text-center text-[11px] text-muted-foreground">—</p>
+                    ) : (
+                      dayEvents.map((event) => (
+                        <EventChip key={event.id} event={event} onClick={openAssignment} />
+                      ))
+                    )}
                   </div>
-                ))}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
 
         {viewMode === "day" && (
-          <DayViewContent
-            selectedDay={selectedDay}
-            events={getEventsForDay(selectedDay)}
-            onEventClick={handleEventClick}
-            courseColorMap={courseColorMap}
+          <DayList
+            day={selectedDay}
+            events={eventsForDay(selectedDay)}
+            onEventClick={openAssignment}
           />
         )}
       </div>
