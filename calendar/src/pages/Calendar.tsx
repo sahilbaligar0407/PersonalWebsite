@@ -22,7 +22,8 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const Calendar = () => {
-  const { loading, removeAssignment, removeAssignments, assignments } = useAssignments();
+  const { loading, removeAssignment, removeAssignments, assignments, preview } =
+    useAssignments();
   const { user, signOut } = useAuth();
   const [mobileTab, setMobileTab] = useState<TabKey>("calendar");
   const [detail, setDetail] = useState<Assignment | null>(null);
@@ -55,8 +56,13 @@ const Calendar = () => {
       </Link>
 
       <div className="flex items-center gap-1">
+        {preview && (
+          <span className="hidden px-2 text-sm text-muted-foreground sm:inline">
+            Not saved — this calendar lives in this browser.
+          </span>
+        )}
         <ThemeToggle />
-        {user && (
+        {user ? (
           <>
             <span className="hidden max-w-[180px] truncate px-2 text-sm text-muted-foreground sm:inline">
               {user.email}
@@ -65,6 +71,10 @@ const Calendar = () => {
               <LogOut className="h-4 w-4" aria-hidden="true" />
             </Button>
           </>
+        ) : (
+          <Button asChild size="sm" variant={preview ? "default" : "ghost"}>
+            <Link to="/signup">{preview ? "Save it" : "Sign up"}</Link>
+          </Button>
         )}
       </div>
     </header>

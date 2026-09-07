@@ -29,7 +29,8 @@ import {
   requireAuth,
   readUser,
 } from "./server/auth.js";
-import { parseAssignmentsFromText, slmHealthy, slmStatus } from "./server/slm.js";
+import { parseAssignmentsFromText, slmHealthy, slmStatus, warmUp } from "./server/slm.js";
+import { guardIcs, guardSignup, guardAi } from "./server/abuse.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
@@ -84,12 +85,34 @@ router.use(
 );
 
 // Strict limiter for auth endpoints (brute-force protection).
+//
+// Keyed on the submitted email when there is one, not just the IP. Requests
+// reach this service through two proxies, so how much of X-Forwarded-For is
+// client-controlled depends on a hop count that is easy to get wrong; keying on
+// the account being attacked means rotating IPs alone does not reset the budget.
+// Falls back to the IP for requests with no email (so it still covers junk).
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    return email ? `email:${email.slice(0, 200)}` : `ip:${req.ip}`;
+  },
   message: { error: "Too many attempts. Please try again later." },
+});
+
+// The .ics relay is reachable without an account so visitors can try an import
+// before signing up. That makes it the one endpoint an anonymous caller can use
+// to make the server fetch a URL, so it gets its own tight budget on top of the
+// SSRF guard below. A real import is one request; this leaves room to retry.
+const icsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many calendar imports. Please try again later." },
 });
 
 // ---------- helpers ----------
@@ -148,7 +171,7 @@ async function consumeAiQuota(prisma, userId) {
 }
 
 // ---------- auth ----------
-router.post("/api/auth/signup", authLimiter, async (req, res) => {
+router.post("/api/auth/signup", authLimiter, guardSignup, async (req, res) => {
   const prisma = dbGuard(res);
   if (!prisma) return;
   const email = str(req.body?.email, 200).toLowerCase();
@@ -324,22 +347,38 @@ router.get("/api/ai/usage", requireAuth, async (req, res) => {
   res.json({ count, remaining: Math.max(0, AI_MONTHLY_LIMIT - count), limit: AI_MONTHLY_LIMIT });
 });
 
-router.post("/api/ai/parse", requireAuth, async (req, res) => {
+router.post("/api/ai/parse", requireAuth, guardAi, async (req, res) => {
   const prisma = dbGuard(res);
   if (!prisma) return;
   const text = str(req.body?.text, 20000);
   if (text.length < 2) return res.status(400).json({ error: "Provide some text to parse." });
 
-  const quota = await consumeAiQuota(prisma, req.user.id);
+  let quota;
+  try {
+    quota = await consumeAiQuota(prisma, req.user.id);
+  } catch (err) {
+    // A DB blip here would otherwise reject unhandled and hang the request.
+    console.error("[ai/parse] quota check failed:", err?.message || err);
+    return res.status(503).json({ error: "Service is busy. Please try again in a moment." });
+  }
   if (!quota.ok) {
     return res.status(quota.status).json({ error: "Monthly AI limit reached.", usage: quota.usage });
   }
+
   try {
     const assignments = await parseAssignmentsFromText(text);
     res.json({ assignments, usage: quota.usage });
   } catch (err) {
+    // A cold model can take longer than the proxy in front of this service is
+    // willing to wait, so say so rather than reporting a flat failure.
+    const timedOut = err?.name === "TimeoutError" || /abort/i.test(err?.message ?? "");
     console.error("[ai/parse] SLM failed:", err?.message || err);
-    res.status(502).json({ error: "The AI service is unavailable right now.", usage: quota.usage });
+    res.status(timedOut ? 503 : 502).json({
+      error: timedOut
+        ? "The model is still starting up. Try that again in a moment."
+        : "The AI service is unavailable right now.",
+      usage: quota.usage,
+    });
   }
 });
 
@@ -398,7 +437,12 @@ async function isPubliclyRoutable(hostname) {
   });
 }
 
-router.get("/api/ics", requireAuth, async (req, res) => {
+// Deliberately unauthenticated: someone should be able to paste a Brightspace
+// link and see their semester before deciding whether to make an account. The
+// response is only ever the calendar text the caller already had a URL for, so
+// nothing is disclosed that they could not fetch themselves — but see the
+// hostname guard above, which is what stops this being an internal-network probe.
+router.get("/api/ics", icsLimiter, guardIcs, async (req, res) => {
   const raw = str(req.query.url, 1000);
   if (!raw) return res.status(400).json({ error: "Missing calendar URL." });
 
@@ -422,15 +466,47 @@ router.get("/api/ics", requireAuth, async (req, res) => {
   }
 
   try {
-    const upstream = await fetch(url, {
-      redirect: "follow",
-      headers: { Accept: "text/calendar, text/plain, */*", "User-Agent": "SmartCal/1.0" },
-      signal: AbortSignal.timeout(30_000),
-    });
+    // Follow redirects by hand. "redirect: follow" would check only the first
+    // hop against the guard above, so a public host could 302 us onto
+    // <service>.railway.internal or the cloud metadata address and we would
+    // fetch it without ever re-checking.
+    let current = url;
+    let upstream;
+
+    for (let hop = 0; ; hop++) {
+      if (hop > 5) {
+        return res.status(502).json({ error: "That calendar link redirects too many times." });
+      }
+
+      upstream = await fetch(current, {
+        redirect: "manual",
+        headers: { Accept: "text/calendar, text/plain, */*", "User-Agent": "SmartCal/1.0" },
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (upstream.status < 300 || upstream.status > 399) break;
+
+      const location = upstream.headers.get("location");
+      if (!location) break;
+
+      let next;
+      try {
+        next = new URL(location, current);
+      } catch {
+        return res.status(502).json({ error: "That calendar link redirects somewhere invalid." });
+      }
+      if (!["http:", "https:"].includes(next.protocol)) {
+        return res.status(400).json({ error: "That host is not allowed." });
+      }
+      if (!(await isPubliclyRoutable(next.hostname).catch(() => false))) {
+        return res.status(400).json({ error: "That host is not allowed." });
+      }
+      current = next;
+    }
 
     if (!upstream.ok) {
       return res.status(502).json({
-        error: `Calendar server returned ${upstream.status}. Check that the link is still valid.`,
+        error: "The calendar server rejected that link. Check that it is still valid.",
       });
     }
 
@@ -444,7 +520,10 @@ router.get("/api/ics", requireAuth, async (req, res) => {
 
     res.type("text/calendar").send(text);
   } catch (err) {
-    res.status(504).json({ error: `Could not reach the calendar server: ${err.message}` });
+    // Deliberately generic: the underlying message carries ECONNREFUSED/ENOTFOUND
+    // plus host and port, which would turn this endpoint into a usable scanner.
+    console.error("[ics] fetch failed:", err?.message || err);
+    res.status(504).json({ error: "Could not reach that calendar server." });
   }
 });
 
@@ -466,9 +545,23 @@ if (BASE_PATH) {
   app.get("/", (_req, res) => res.redirect(`${BASE_PATH}/`));
 }
 
+// Last-resort handler. Express's default would send an HTML error page with a
+// stack trace in it; on a public deployment that is both ugly and a disclosure.
+// eslint-disable-next-line no-unused-vars -- Express identifies this by arity.
+app.use((err, _req, res, _next) => {
+  console.error("[unhandled]", err?.stack || err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Something went wrong. Please try again." });
+});
+
 // ---------- listen, then connect DB in the background ----------
 const port = Number(process.env.PORT) || 8080;
 app.listen(port, "0.0.0.0", () => {
   console.log(`SmartCal server listening on 0.0.0.0:${port} (base ${BASE_PATH})`);
   initPrisma();
+  // Pull the model into memory now rather than making the first visitor wait
+  // out a cold start behind the proxy. Non-blocking and non-fatal.
+  warmUp().then((ok) =>
+    console.log(`>>> [boot] SLM warm-up ${ok ? "complete" : "skipped (service not reachable yet)"}`),
+  );
 });

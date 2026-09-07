@@ -103,6 +103,32 @@ For AI locally, run Ollama on your machine (`ollama pull qwen2.5:3b-instruct`) a
   the recovered text is sent to `/api/ai/parse` — the image never leaves the
   device, and the server needs no upload handling.
 
+## Required before deploying: `JWT_SECRET`
+
+The calendar service now **refuses to start** in production if `JWT_SECRET` is
+missing, instead of falling back to a dev value. That fallback string is
+committed to a public repo, so anyone could read it and mint a session token for
+any account. Warning and carrying on was the wrong trade.
+
+Consequence: **if `JWT_SECRET` is not set on the Railway calendar service, the
+deploy will crash-loop.** Confirm it is set before shipping this. Changing its
+value invalidates every existing session (everyone is signed out once), which is
+harmless but worth knowing.
+
+## Abuse protection
+
+`server/abuse.js` wires [AbuseGuard](https://github.com/sahil-baligar/AbuseGuard)
+onto the three endpoints an anonymous or automated caller can reach: the `.ics`
+relay, sign-up, and AI parsing. It is vendored rather than installed — see
+`server/vendor/abuseguard/README.md` for why, and for the two settings there
+(`trustProxy: false`, and no `deviceCluster` signal) that must not be changed
+without reading that note first.
+
+It sits *in front of* the existing `express-rate-limit` limiters rather than
+replacing them, so a mistake in the scoring layer cannot leave an endpoint
+unprotected. Decisions other than "allow" are logged as `[abuse:<endpoint>]`;
+no email or pasted content is ever logged.
+
 ## What changed when the newer calendar app was ported in
 
 - The front end is the rebuilt SmartCal UI (minimal design, dark mode, per-course

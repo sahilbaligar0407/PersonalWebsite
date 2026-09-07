@@ -6,11 +6,27 @@ import jwt from "jsonwebtoken";
 const COOKIE_NAME = "smartcal_token";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-// In production JWT_SECRET must be set (Railway env). Fall back only for local dev.
+// The dev fallback below is committed to a PUBLIC repo, so anyone can read it.
+// If it were ever used in production — a fresh service, a renamed variable, a
+// preview environment — anyone could mint a token for any user id and read or
+// change that account's calendar. Warning and carrying on is not good enough:
+// refuse to boot instead, so the failure is loud and immediate.
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET is not set. Refusing to start in production rather than sign sessions " +
+      "with the public dev fallback.",
+  );
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "dev-insecure-secret-change-me";
 if (!process.env.JWT_SECRET) {
-  console.warn("[auth] JWT_SECRET not set — using an insecure dev fallback.");
+  console.warn("[auth] JWT_SECRET not set — using an insecure dev fallback (development only).");
 }
+
+// Scope the session cookie to the app's own path. It defaulted to "/", which
+// sent it on every request to the parent domain, including pages that have
+// nothing to do with this service.
+const COOKIE_PATH = (process.env.APP_BASE_PATH || "").replace(/\/+$/, "") || "/";
 
 export async function hashPassword(plain) {
   return bcrypt.hash(plain, 12);
@@ -32,12 +48,16 @@ export function setAuthCookie(res, token) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: SEVEN_DAYS_MS,
-    path: "/",
+    path: COOKIE_PATH,
   });
 }
 
 export function clearAuthCookie(res) {
-  res.clearCookie(COOKIE_NAME, { path: "/" });
+  res.clearCookie(COOKIE_NAME, { path: COOKIE_PATH });
+  // Sessions issued before the cookie was scoped live at "/" and would survive
+  // a sign-out that only cleared the new path, leaving people apparently still
+  // signed in. Clearing both is harmless once those have aged out.
+  if (COOKIE_PATH !== "/") res.clearCookie(COOKIE_NAME, { path: "/" });
 }
 
 // Reads the token from the cookie and attaches req.user = { id, email } if valid.

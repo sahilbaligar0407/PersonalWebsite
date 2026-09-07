@@ -59,7 +59,8 @@ export function CalendarImport({ heading, description }: CalendarImportProps) {
       }
 
       const { added, duplicates } = await addAssignments(toAssignments(deadlines, "ics"));
-      await api.saveFeedUrl(trimmed).catch(() => {});
+      // Only an account has somewhere to remember the feed.
+      if (user) await api.saveFeedUrl(trimmed).catch(() => {});
 
       const detail = [
         duplicates > 0 ? `${duplicates} already saved` : null,
@@ -116,7 +117,7 @@ export function CalendarImport({ heading, description }: CalendarImportProps) {
             value={link}
             onChange={(e) => setLink(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleImport()}
-            disabled={!user || loading}
+            disabled={loading}
             placeholder="https://…/calendar/feed/user/feed.ics?token=…"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "feed-error" : "feed-help"}
@@ -127,7 +128,7 @@ export function CalendarImport({ heading, description }: CalendarImportProps) {
           />
           <Button
             onClick={handleImport}
-            disabled={!user || loading || !link.trim()}
+            disabled={loading || !link.trim()}
             className="h-11 min-w-[112px]"
           >
             {loading ? (
@@ -162,13 +163,14 @@ export function CalendarImport({ heading, description }: CalendarImportProps) {
 
         {!user && (
           <p className="mt-4 pt-4 border-t border-border text-sm text-muted-foreground">
+            You can import without an account — it stays in this browser.{" "}
             <Link
-              to="/signin"
+              to="/signup"
               className="font-bold text-primary underline underline-offset-4"
             >
-              Sign in
+              Create one
             </Link>{" "}
-            to save a calendar to your account.
+            to keep it, and whatever you have imported comes with you.
           </p>
         )}
       </div>

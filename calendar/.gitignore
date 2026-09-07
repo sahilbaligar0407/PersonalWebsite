@@ -30,3 +30,6 @@ dist-ssr
 
 # Generated OCR assets (npm run setup:ocr / postinstall)
 public/tesseract/
+
+# Tesseract language data pulled into the cwd by ad-hoc OCR runs
+eng.traineddata
