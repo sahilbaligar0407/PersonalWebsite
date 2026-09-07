@@ -27,6 +27,12 @@ import * as chrono from "chrono-node";
 const SLM_BASE_URL = (process.env.SLM_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
 const SLM_MODEL = process.env.SLM_MODEL || "qwen2.5:3b-instruct";
 const SLM_TIMEOUT_MS = Number(process.env.SLM_TIMEOUT_MS ?? 120_000);
+// Total wall clock this whole parse may spend talking to the model.
+// The rows path makes several sequential calls and the SLM runs on CPU, so a
+// long schedule can outlast the proxy in front of this service -- which the
+// browser then sees as a flat 500. Past this budget we stop asking and return
+// what we have, which is never nothing: the deterministic pass has already run.
+const SLM_BUDGET_MS = Number(process.env.SLM_BUDGET_MS ?? 40_000);
 // How long Ollama holds the model in memory after a request. Without this it
 // unloads within minutes, and the next visitor pays the cold start again.
 const SLM_KEEP_ALIVE = process.env.SLM_KEEP_ALIVE ?? "30m";
@@ -664,11 +670,11 @@ function collapseAssignedAndDue(items) {
 
 /* ------------------------------ SLM calls ------------------------------- */
 
-async function chat(messages, format = "json") {
+async function chat(messages, format = "json", timeoutMs = SLM_TIMEOUT_MS) {
   const res = await fetch(`${SLM_BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(SLM_TIMEOUT_MS),
+    signal: AbortSignal.timeout(Math.max(1_000, Math.min(SLM_TIMEOUT_MS, timeoutMs))),
     body: JSON.stringify({
       model: SLM_MODEL,
       stream: false,
@@ -762,7 +768,7 @@ function timeForSegment(row, index) {
 }
 
 /** One batch of normalized rows -> assignments, with dates taken from the rows. */
-async function parseRowBatch(batch, course, reference) {
+async function parseRowBatch(batch, course, reference, timeoutMs = SLM_TIMEOUT_MS) {
   const listing = batch
     .map((row, i) => `${i + 1} | ${row.label} | ${row.parts.join(" | ")}`)
     .join("\n");
@@ -773,6 +779,7 @@ async function parseRowBatch(batch, course, reference) {
       { role: "user", content: `ROWS:\n${listing}` },
     ],
     rowsSchema(batch.length),
+    timeoutMs,
   );
   if (!parsed) return [];
 
@@ -902,11 +909,21 @@ export async function parseAssignmentsFromText(text) {
     const found = [];
     const answered = new Set();
 
+    const deadline = Date.now() + SLM_BUDGET_MS;
+
     const sweep = async (list, size) => {
       for (let i = 0; i < list.length; i += size) {
+        // Stop rather than run past the budget. Whatever has been collected so
+        // far is returned; half a calendar beats a 500.
+        const remaining = deadline - Date.now();
+        if (remaining <= 2_000) {
+          console.warn("[slm] time budget spent; returning partial results");
+          return;
+        }
+
         const batch = list.slice(i, i + size);
         try {
-          for (const item of await parseRowBatch(batch, course, reference)) {
+          for (const item of await parseRowBatch(batch, course, reference, remaining)) {
             found.push(item);
             answered.add(item.sourceRow);
           }
@@ -932,14 +949,18 @@ export async function parseAssignmentsFromText(text) {
     // that really are empty (a reading, a room number) stay empty, so this
     // second pass is short — four rows out of the cs307 dump's twenty-four.
     const missed = rows.filter((row) => !answered.has(row));
-    if (missed.length && missed.length <= RETRY_ROW_LIMIT) {
+    if (missed.length && missed.length <= RETRY_ROW_LIMIT && Date.now() < deadline) {
       await sweep(missed, RETRY_BATCH_SIZE);
     }
 
     if (found.length) return collapseAssignedAndDue(found);
+
+    // Tabular input that produced nothing is not worth a second full-text pass
+    // on a budget that is, by definition, already spent.
+    if (Date.now() >= deadline) return [];
   }
 
-  return parseWholeText(text);
+  return parseWholeText(text, SLM_BUDGET_MS);
 }
 
 /* -------------------------------- status -------------------------------- */

@@ -365,10 +365,18 @@ router.post("/api/ai/parse", requireAuth, guardAi, async (req, res) => {
     return res.status(quota.status).json({ error: "Monthly AI limit reached.", usage: quota.usage });
   }
 
+  const startedAt = Date.now();
   try {
     const assignments = await parseAssignmentsFromText(text);
+    // Timing is logged on every parse: if this line is absent for a request the
+    // browser saw fail, the failure happened upstream of this service (the
+    // proxy gave up) rather than here, which is the difference that matters.
+    console.log(
+      `[ai/parse] ok chars=${text.length} items=${assignments.length} ms=${Date.now() - startedAt}`,
+    );
     res.json({ assignments, usage: quota.usage });
   } catch (err) {
+    console.error(`[ai/parse] failed after ${Date.now() - startedAt}ms`);
     // A cold model can take longer than the proxy in front of this service is
     // willing to wait, so say so rather than reporting a flat failure.
     const timedOut = err?.name === "TimeoutError" || /abort/i.test(err?.message ?? "");
