@@ -12,6 +12,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# next.config.js rewrites() runs at BUILD time and is baked into routes-manifest.json.
+# Railway supplies service variables as build args, so declare it here (as ARG +
+# ENV) BEFORE the build — otherwise the /Calendar proxy rewrite is never generated
+# and Next serves its own 404 for /Calendar.
+ARG CALENDAR_ORIGIN
+ENV CALENDAR_ORIGIN=${CALENDAR_ORIGIN}
 RUN npm run build
 
 # --- runner: minimal image that serves the standalone server ---

@@ -3,7 +3,10 @@ const nextConfig = {
   // Emit a self-contained server bundle so the Docker image (Railway) stays small.
   output: "standalone",
   images: {
-    domains: [],
+    // Self-hosted standalone doesn't bundle `sharp`, so the default image
+    // optimizer fails at runtime. These are a couple of static assets — serve
+    // them as-is instead of pulling in a native dependency.
+    unoptimized: true,
   },
   // Disable webpack cache on Windows to avoid file locking issues
   webpack: (config, { isServer }) => {
@@ -17,28 +20,39 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  // Serve the RoyLee page under alternate paths (URL stays the same).
   async rewrites() {
-    const rules = [
+    // Internal alias rewrites for the RoyLee page (URL stays the same).
+    const afterFiles = [
       { source: "/roylee", destination: "/RoyLee" },
       { source: "/application", destination: "/RoyLee" },
     ];
 
     // Proxy /Calendar to the separate SmartCal service (its own Railway service
-    // + Postgres + self-hosted SLM). Set CALENDAR_ORIGIN on the personal-site
-    // service, e.g. http://smartcal.railway.internal:8080 (private) or the
-    // service's public https URL. The /Calendar prefix is preserved because the
-    // calendar server serves everything under /Calendar.
+    // + Postgres + self-hosted SLM). The /Calendar prefix is PRESERVED because
+    // the calendar server serves everything under /Calendar (APP_BASE_PATH).
+    //
+    // NOTE: rewrites() runs at BUILD time and is compiled into routes-manifest.json,
+    // so CALENDAR_ORIGIN must be present during `next build` (see the ARG in the
+    // Dockerfile) — setting it only at runtime has no effect. This log makes it
+    // obvious in the Railway build logs whether the proxy was baked in.
+    const beforeFiles = [];
     const calendarOrigin = process.env.CALENDAR_ORIGIN;
     if (calendarOrigin) {
       const origin = calendarOrigin.replace(/\/$/, "");
-      rules.push(
+      // beforeFiles runs before filesystem/route resolution, so nothing in the
+      // app can shadow the proxy and cause a premature 404.
+      beforeFiles.push(
         { source: "/Calendar", destination: `${origin}/Calendar` },
         { source: "/Calendar/:path*", destination: `${origin}/Calendar/:path*` },
       );
+      console.log(`[next.config] Calendar proxy ENABLED -> ${origin}/Calendar`);
+    } else {
+      console.warn(
+        "[next.config] CALENDAR_ORIGIN not set at build time — /Calendar proxy will NOT be generated.",
+      );
     }
 
-    return rules;
+    return { beforeFiles, afterFiles };
   },
 };
 
