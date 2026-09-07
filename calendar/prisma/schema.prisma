@@ -1,0 +1,81 @@
+// SmartCal — Railway Postgres schema (replaces Supabase).
+// Auth is self-owned: the User table replaces Supabase's auth.users.
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; the musl target is what the Alpine Docker image needs.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  calendars    Calendar[]
+  aiUsage      AiUsage[]
+  courseColors CourseColor[]
+}
+
+// One calendar per user (mirrors the old UNIQUE(user_id) constraint).
+model Calendar {
+  id              String       @id @default(uuid())
+  userId          String       @unique
+  subscriptionUrl String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments     Assignment[]
+}
+
+model Assignment {
+  id         String   @id @default(uuid())
+  calendarId String
+  course     String
+  name       String
+  dueDate    DateTime @db.Date
+  dueTime    String?
+  link       String?
+  color      String   @default("blue")
+  source     String   @default("manual") // 'manual' | 'ics' | 'ai_text' | 'ai_image'
+  createdAt  DateTime @default(now())
+
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, course, name, dueDate])
+  @@index([calendarId])
+}
+
+// AI usage per user per month for the 20/month rate limit.
+model AiUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  month     String // 'YYYY-MM'
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+}
+
+model CourseColor {
+  id        String   @id @default(uuid())
+  userId    String
+  course    String
+  color     String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, course])
+}

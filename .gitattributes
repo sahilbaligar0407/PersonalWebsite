@@ -1,0 +1,6 @@
+# Keep LF for files that run inside Linux containers, regardless of the OS the
+# repo is edited on. CRLF here would break `sh start.sh` and Docker builds.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+start.sh    text eol=lf

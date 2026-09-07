@@ -1,0 +1,11 @@
+node_modules
+dist
+slm
+.git
+.env
+.env.*
+*.log
+bun.lockb
+.vscode
+.idea
+.DS_Store
