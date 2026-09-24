@@ -30,7 +30,6 @@ export default function Contact() {
               </DrawPath>
             </span>
           </p>
-          <DrawPath preset="signature" trigger="scrub" color="#161512" strokeWidth={3} className="closing__signature" />
 
           <div className="closing__copy">
             <p className="closing__body">{CONTACT.body}</p>

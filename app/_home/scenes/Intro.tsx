@@ -1,7 +1,6 @@
 "use client";
 import { useRef } from "react";
 import { HERO, LINKS, PORTRAIT, SOCIALS } from "../content";
-import { DrawPath } from "../recipes/DrawPath";
 import { Media } from "../recipes/Media";
 import { RingText } from "../recipes/RingText";
 import { SplitHeadlineIntro } from "../recipes/SplitHeadlineIntro";
@@ -36,7 +35,6 @@ export default function Intro() {
 
       <div className="intro__name">
         <SplitHeadlineIntro text={`${HERO.first}\n*${HERO.last}*`} split="chars" size="giant" accentFont="body" className="intro__title" />
-        <DrawPath preset="signature" className="intro__signature" strokeWidth={4} delay={0.8} duration={3.2} label="Sahil Baligar signature" />
       </div>
 
       <div className="intro__figure">
