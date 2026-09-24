@@ -1,0 +1,297 @@
+/*
+ * Landing-only tokens + base, ported from the Kai Arden scroll lab ("Salt & Kiln" DNA, cinematic tempo).
+ * Everything is scoped to .sbk (the landing root) so no other route is affected.
+ */
+.sbk {
+  --color-background: #0e100c;
+  --color-surface: #1a1d17;
+  --color-ink: #f2efe6;
+  --color-muted: #9a9d8f;
+  --color-accent: #d2ff3c;
+  --color-accent-2: #b7c4a6;
+  --color-ink-rgb: 242 239 230;
+  --color-accent-rgb: 210 255 60;
+  --color-line: rgb(var(--color-ink-rgb) / 0.16);
+  --color-focus: var(--color-accent);
+
+  --font-display: var(--font-sbk-serif), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: var(--font-sbk-sans), system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-utility: var(--font-sbk-mono), ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --step--2: clamp(0.69rem, 0.66rem + 0.14vw, 0.78rem);
+  --step--1: clamp(0.83rem, 0.79rem + 0.2vw, 0.94rem);
+  --step-0: clamp(1rem, 0.95rem + 0.23vw, 1.13rem);
+  --step-1: clamp(1.2rem, 1.1rem + 0.45vw, 1.5rem);
+  --step-2: clamp(1.44rem, 1.26rem + 0.8vw, 2rem);
+  --step-3: clamp(1.73rem, 1.43rem + 1.33vw, 2.67rem);
+  --step-4: clamp(2.07rem, 1.6rem + 2.1vw, 3.55rem);
+  --step-5: clamp(2.49rem, 1.75rem + 3.3vw, 4.74rem);
+  --step-6: clamp(2.99rem, 1.83rem + 5.14vw, 6.31rem);
+  --step-7: clamp(3.4rem, 1.6rem + 8vw, 9rem);
+
+  --leading-tight: 0.95;
+  --leading-snug: 1.15;
+  --leading-body: 1.55;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.12em;
+  --measure: 62ch;
+
+  --space-3xs: clamp(0.25rem, 0.23rem + 0.09vw, 0.31rem);
+  --space-2xs: clamp(0.5rem, 0.46rem + 0.19vw, 0.63rem);
+  --space-xs: clamp(0.75rem, 0.69rem + 0.28vw, 0.94rem);
+  --space-s: clamp(1rem, 0.93rem + 0.37vw, 1.25rem);
+  --space-m: clamp(1.5rem, 1.39rem + 0.56vw, 1.88rem);
+  --space-l: clamp(2rem, 1.85rem + 0.74vw, 2.5rem);
+  --space-xl: clamp(3rem, 2.78rem + 1.11vw, 3.75rem);
+  --space-2xl: clamp(4rem, 3.7rem + 1.48vw, 5rem);
+  --space-3xl: clamp(6rem, 5.56rem + 2.22vw, 7.5rem);
+  --space-4xl: clamp(8rem, 6.8rem + 6vw, 12rem);
+
+  --page-max: 90rem;
+  --gutter: clamp(1.25rem, 0.8rem + 2.2vw, 3rem);
+  --grid-gap: clamp(0.75rem, 0.5rem + 1.1vw, 1.5rem);
+
+  --radius-s: 0;
+  --radius-m: 0;
+  --radius-l: 0;
+  --border: 1px solid var(--color-line);
+
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 180ms;
+  --duration-base: 420ms;
+  --duration-slow: 900ms;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  background: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: var(--leading-body);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+html.lenis {
+  scroll-behavior: auto;
+}
+
+.sbk ::selection {
+  background: rgb(var(--color-accent-rgb) / 0.35);
+  color: var(--color-ink);
+}
+
+:where(.sbk) h1,
+:where(.sbk) h2,
+:where(.sbk) h3,
+:where(.sbk) h4 {
+  font-weight: 400;
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+:where(.sbk) p {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+
+:where(.sbk) a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.sbk :focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.sbk :focus:not(:focus-visible) {
+  outline: none;
+}
+
+:where(.sbk) img,
+:where(.sbk) svg {
+  display: block;
+  max-width: 100%;
+}
+
+.sbk-main {
+  display: block;
+}
+
+.dl-scene {
+  position: relative;
+  width: 100%;
+}
+
+.dl-scene--full {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.dl-sr-only,
+.sbk-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sbk-skip {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: var(--color-accent);
+  color: #0e100c;
+  font-family: var(--font-utility);
+  font-size: var(--step--1);
+  transform: translateY(-200%);
+}
+
+.sbk-skip:focus-visible {
+  transform: none;
+}
+
+/* ------------------------------------------------------------ media */
+
+.dl-asset {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dl-procedural {
+  position: relative;
+  overflow: hidden;
+  min-height: 1px;
+  --c1: var(--dl-c1, var(--color-accent));
+  --c2: var(--dl-c2, var(--color-surface));
+  --c3: var(--dl-c3, var(--color-background));
+  --c-mut: var(--color-muted);
+  background-color: var(--c3);
+}
+
+.dl-procedural--gradient {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--c1) 85%, #000) 0%, var(--c2) 48%, var(--c3) 100%);
+}
+
+.dl-procedural--mesh {
+  background-image:
+    radial-gradient(ellipse 60% 50% at 15% 20%, color-mix(in srgb, var(--c1) 60%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 25%, color-mix(in srgb, var(--color-accent-2) 40%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 60% at 30% 85%, color-mix(in srgb, var(--c2) 80%, transparent) 0%, transparent 75%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, color-mix(in srgb, var(--c1) 30%, transparent) 0%, transparent 70%);
+}
+
+.dl-procedural--grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--c-mut) 20%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--c-mut) 20%, transparent) 1px, transparent 1px);
+  background-size: 3rem 3rem, 3rem 3rem;
+}
+
+/* ------------------------------------------------------------ shared bits */
+
+.sbk-label {
+  font-family: var(--font-utility);
+  font-size: var(--step--1);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.sbk-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.25em 0.7em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-family: var(--font-utility);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.sbk-tag--live::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sbk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sbk-chip {
+  padding: 0.2em 0.6em;
+  border: 1px solid rgb(var(--color-ink-rgb) / 0.22);
+  border-radius: 999px;
+  font-family: var(--font-utility);
+  font-size: var(--step--2);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.sbk-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-utility);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.15em;
+}
+
+.sbk-link__arrow {
+  display: inline-block;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .sbk-link:hover .sbk-link__arrow {
+    transform: translate(0.2em, -0.2em);
+  }
+}
+
+/* Reduced motion: neutralise CSS transitions on the landing. GSAP scenes branch explicitly. */
+@media (prefers-reduced-motion: reduce) {
+  .sbk *,
+  .sbk *::before,
+  .sbk *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.sbk[data-motion="reduced"] *,
+.sbk[data-motion="reduced"] *::before,
+.sbk[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}

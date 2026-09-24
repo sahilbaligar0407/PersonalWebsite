@@ -21,11 +21,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    // Internal alias rewrites for the RoyLee page (URL stays the same).
-    const afterFiles = [
-      { source: "/roylee", destination: "/RoyLee" },
-      { source: "/application", destination: "/RoyLee" },
-    ];
+    const afterFiles = [];
 
     // Proxy /Calendar to the separate SmartCal service (its own Railway service
     // + Postgres + self-hosted SLM). The /Calendar prefix is PRESERVED because

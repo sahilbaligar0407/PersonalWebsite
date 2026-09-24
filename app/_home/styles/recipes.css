@@ -1,0 +1,628 @@
+/* SplitHeadlineIntro recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-intro {
+  font-family: var(--rx-intro-font, var(--font-display));
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+.rx-intro--l {
+  font-size: var(--step-6);
+}
+
+.rx-intro--xl {
+  font-size: var(--step-7);
+}
+
+.rx-intro--giant {
+  font-size: clamp(3.5rem, 1rem + 11vw, 14rem);
+  line-height: 0.88;
+}
+
+.rx-intro__accent {
+  font-family: var(--rx-intro-accent-font, var(--font-display));
+  color: var(--rx-intro-accent, var(--color-accent));
+  font-style: italic;
+}
+
+.rx-intro__line {
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+/* DrawPath recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-draw {
+  display: block;
+  color: var(--rx-draw-color, var(--color-accent));
+}
+
+.rx-draw__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.rx-draw__stroke {
+  stroke: currentColor;
+}
+
+/* Marking inline text */
+.rx-draw--mark {
+  position: relative;
+  display: inline-block;
+  color: inherit;
+}
+
+.rx-draw--mark .rx-draw__svg {
+  position: absolute;
+  pointer-events: none;
+  color: var(--rx-draw-color, var(--color-accent));
+}
+
+.rx-draw__svg--under {
+  left: -4%;
+  width: 108%;
+  top: 94%;
+}
+
+.rx-draw__svg--around {
+  left: -14%;
+  top: -22%;
+  width: 128%;
+  height: 144%;
+}
+
+.rx-draw__svg--over {
+  left: -6%;
+  top: 30%;
+  width: 112%;
+  height: 50%;
+}
+
+/* KineticStatement recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-kinetic {
+  font-family: var(--rx-kinetic-font, var(--font-display));
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.rx-kinetic--l {
+  font-size: var(--step-6);
+}
+
+.rx-kinetic--xl {
+  font-size: var(--step-7);
+}
+
+.rx-kinetic--giant {
+  font-size: clamp(3.5rem, 1rem + 10.5vw, 13rem);
+  line-height: 0.9;
+}
+
+.rx-kinetic--start {
+  text-align: start;
+}
+
+.rx-kinetic--center {
+  text-align: center;
+}
+
+.rx-kinetic--end {
+  text-align: end;
+}
+
+.rx-kinetic__accent {
+  font-family: var(--rx-kinetic-accent-font, var(--font-body));
+  color: var(--rx-kinetic-accent, var(--color-accent));
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  font-size: 0.86em;
+}
+
+.rx-kinetic--italic .rx-kinetic__accent {
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: var(--tracking-tight);
+  font-size: 1em;
+}
+
+/* SplitText masks: keep descenders inside the mask. */
+.rx-kinetic__line {
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.rx-kinetic__word {
+  will-change: opacity;
+}
+
+/* VelocityMarquee recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-marquee {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.rx-marquee__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+
+.rx-marquee__group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--rx-marquee-gap, var(--space-l));
+  padding-right: var(--rx-marquee-gap, var(--space-l));
+  white-space: nowrap;
+}
+
+/* ParallaxCollage recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-collage {
+  position: relative;
+  width: 100%;
+  min-height: var(--rx-collage-height, 160svh);
+  overflow: clip;
+  isolation: isolate;
+}
+
+.rx-collage__field {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rx-collage__item {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  z-index: var(--z, 1);
+  will-change: transform;
+}
+
+.rx-collage__lift {
+  margin: 0;
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+.rx-collage__frame {
+  position: relative;
+  aspect-ratio: var(--ratio, 4 / 5);
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+}
+
+.rx-collage__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+.rx-collage__caption {
+  margin-top: var(--space-2xs);
+  font-family: var(--font-utility);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.rx-collage__content {
+  position: relative;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  min-height: var(--rx-collage-height, 160svh);
+  padding: var(--space-3xl) var(--gutter);
+  pointer-events: none;
+}
+
+.rx-collage__content > * {
+  pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .rx-collage__item:hover .rx-collage__lift {
+    transform: translateY(-0.75rem) rotate(-0.6deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .rx-collage {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .rx-collage__content {
+    order: -1;
+    min-height: 0;
+    padding: var(--space-2xl) var(--gutter) var(--space-l);
+  }
+
+  .rx-collage__field {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-s);
+    padding: 0 var(--gutter) var(--space-2xl);
+  }
+
+  .rx-collage__item {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
+    z-index: auto;
+  }
+
+  .rx-collage__item:nth-child(even) {
+    margin-top: var(--space-2xl);
+  }
+}
+
+/* ClipReveal recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-clip {
+  position: relative;
+  width: 100%;
+}
+
+.rx-clip__frame {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--color-surface);
+  will-change: clip-path;
+}
+
+.rx-clip__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 50%;
+}
+
+.rx-clip__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0.75) 100%);
+  pointer-events: none;
+}
+
+.rx-clip__overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-s);
+  padding: var(--space-2xl) var(--gutter);
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  .rx-clip__frame {
+    height: 80svh;
+  }
+
+  .rx-clip__overlay {
+    padding: var(--space-l) var(--gutter);
+  }
+}
+
+/* HorizontalTrack recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-htrack {
+  position: relative;
+  width: 100%;
+}
+
+.rx-htrack__viewport {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.rx-htrack__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop with motion: GSAP drives the track; the viewport must not scroll natively. */
+.rx-htrack[data-rx-pinned="true"] .rx-htrack__viewport {
+  overflow: hidden;
+  scroll-snap-type: none;
+}
+
+.rx-htrack__track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-l);
+  margin: 0;
+  padding: var(--space-2xl) var(--gutter);
+  list-style: none;
+  width: max-content;
+  will-change: transform;
+}
+
+.rx-htrack__intro,
+.rx-htrack__item {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+}
+
+.rx-htrack__intro {
+  width: min(34rem, 38vw);
+  padding-right: var(--space-2xl);
+}
+
+.rx-htrack__card {
+  display: grid;
+  gap: var(--space-s);
+}
+
+.rx-htrack__card--s {
+  width: clamp(14rem, 22vw, 22rem);
+}
+
+.rx-htrack__card--m {
+  width: clamp(16rem, 30vw, 30rem);
+}
+
+.rx-htrack__card--l {
+  width: clamp(18rem, 42vw, 42rem);
+}
+
+.rx-htrack__window {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+}
+
+.rx-htrack__card--l .rx-htrack__window {
+  aspect-ratio: 4 / 3;
+}
+
+.rx-htrack__media {
+  position: absolute;
+  inset: 0 -10%;
+  width: 120%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rx-htrack__caption {
+  font-size: var(--step-0);
+}
+
+@media (max-width: 767px) {
+  .rx-htrack__intro {
+    width: 80vw;
+    padding-right: 0;
+  }
+
+  .rx-htrack__card--s,
+  .rx-htrack__card--m,
+  .rx-htrack__card--l {
+    width: 78vw;
+  }
+
+  .rx-htrack--mobile-stack .rx-htrack__viewport {
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .rx-htrack--mobile-stack .rx-htrack__track {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .rx-htrack--mobile-stack .rx-htrack__intro,
+  .rx-htrack--mobile-stack .rx-htrack__card {
+    width: 100%;
+  }
+}
+
+/* PinnedStage recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-pinned {
+  position: relative;
+  width: 100%;
+}
+
+.rx-pinned__stage {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+@media (max-width: 767px) {
+  .rx-pinned__stage {
+    height: auto;
+    min-height: 100svh;
+  }
+}
+
+/* StackedPanels recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-stack {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+}
+
+.rx-stack__panel {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+}
+
+.rx-stack__inner {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  transform-origin: 50% 0%;
+  will-change: transform;
+}
+
+.rx-stack__panel + .rx-stack__panel .rx-stack__inner {
+  border-radius: var(--rx-stack-radius, 28px) var(--rx-stack-radius, 28px) 0 0;
+}
+
+.rx-stack__surface {
+  position: relative;
+  height: 100%;
+  background: var(--color-surface);
+}
+
+.rx-stack__veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .rx-stack:not(.rx-stack--mobile-sticky) .rx-stack__panel {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+  }
+
+  .rx-stack:not(.rx-stack--mobile-sticky) .rx-stack__inner,
+  .rx-stack:not(.rx-stack--mobile-sticky) .rx-stack__surface {
+    height: auto;
+    min-height: 100svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rx-stack__panel {
+    position: relative;
+  }
+}
+
+.sbk[data-motion="reduced"] .rx-stack__panel {
+  position: relative;
+}
+
+/* CurvedEdge recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-curve {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  background: var(--rx-curve-bg, var(--color-surface));
+}
+
+.rx-curve__edge {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% - 1px);
+  width: 100%;
+  max-width: none;
+  height: var(--rx-curve-depth, 18vh);
+  fill: var(--rx-curve-bg, var(--color-surface));
+  transform-origin: 50% 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* RingText recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-ring {
+  position: relative;
+  width: var(--rx-ring-size, 12rem);
+  aspect-ratio: 1;
+}
+
+.rx-ring__dial {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.rx-ring__svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  will-change: transform;
+}
+
+.rx-ring__text {
+  fill: currentColor;
+  font-family: var(--rx-ring-font, var(--font-utility));
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rx-ring__center {
+  position: absolute;
+  inset: 22%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  text-align: center;
+}
+
+/* ShapeMask recipe. Ported from the Kai Arden scroll recipe library. */
+.rx-mask {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--rx-mask-ratio, 4 / 5);
+}
+
+.rx-mask__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-surface);
+  will-change: clip-path;
+}
+
+.rx-mask__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rx-mask__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
