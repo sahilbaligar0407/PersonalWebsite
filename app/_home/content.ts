@@ -44,7 +44,7 @@ export const HERO = {
 export const ABOUT = {
   label: "About",
   statement:
-    "I build end-to-end products — from polished *React/TypeScript* front-ends to *Node/Django* back-ends — and work across *AI/ML* and data science to ship clean, reliable software.",
+    "I build end-to-end products — from polished *React/TypeScript* front-ends to *Node/Django* back-ends — and work across *AI/ML* and data science to build clean reliable software.",
   facts: [
     "Junior in Computer Science at Purdue University",
     "Graduating Winter 2027 (Dean's List & Semester Honors)",
