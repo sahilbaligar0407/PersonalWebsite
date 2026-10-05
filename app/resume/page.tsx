@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const RESUME_PATH = "/Resume-SahilBaligar-August2026.pdf";
+const RESUME_PATH = "/Resume-SahilBaligar-October2026.pdf";
 
 export const metadata: Metadata = {
   title: "Resume | Sahil Baligar",
